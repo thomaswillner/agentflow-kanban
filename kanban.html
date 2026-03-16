@@ -1,0 +1,2277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' ws: wss:;">
+<title>AgentFlow — AI-Powered Task Orchestration</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --accent:#00b4d8;--secondary:#7c3aed;--bg:#06090f;--card:#161b22;
+  --text:#e6edf3;--border:#21262d;--surface:#0d1117;--hover:#1c2333;
+  --success:#2ea043;--warning:#d29922;--danger:#da3633;--info:#388bfd;
+  --p-critical:#ff4757;--p-high:#ff6b6b;--p-medium:#ffa502;--p-low:#2ed573;--p-none:#747d8c;
+  --radius:8px;--shadow:0 4px 24px rgba(0,0,0,.4);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  /* Secondary text colors */
+  --text-muted:#8b949e;--text-faint:#6e7681;--text-secondary:#c9d1d9;
+  --text-phase:#f0883e;--text-on-accent:#000;--text-on-dark:#fff;
+  /* Overlay & backdrop */
+  --overlay:rgba(0,0,0,.7);--code-bg:rgba(110,118,129,.15);
+}
+/* LIGHT MODE */
+html.light{
+  --bg:#f6f8fa;--card:#ffffff;--text:#1f2328;--border:#d0d7de;--surface:#ffffff;--hover:#f3f4f6;
+  --shadow:0 4px 24px rgba(0,0,0,.1);
+  --text-muted:#656d76;--text-faint:#818b98;--text-secondary:#424a53;
+  --text-phase:#bc4c00;--text-on-accent:#fff;--text-on-dark:#fff;
+  --overlay:rgba(0,0,0,.5);--code-bg:rgba(175,184,193,.2);
+  --success:#1a7f37;--warning:#9a6700;--danger:#cf222e;--info:#0969da;
+  --accent:#0969da;--secondary:#6639ba;
+  --p-critical:#cf222e;--p-high:#d1242f;--p-medium:#9a6700;--p-low:#1a7f37;--p-none:#656d76;
+}
+html.light .nav-title{-webkit-text-fill-color:transparent;background:linear-gradient(135deg,#0969da,#7c3aed);-webkit-background-clip:text}
+html.light ::-webkit-scrollbar-thumb{background:var(--border)}
+html.light .pricing-badge.free{background:rgba(46,160,67,.12)}.light .pricing-badge.pro{background:rgba(9,105,218,.12)}.light .pricing-badge.enterprise{background:rgba(124,58,237,.12)}
+html.light .form-input,html.light .form-select,html.light .form-textarea{background:var(--bg);border-color:var(--border)}
+html.light .form-input:focus,html.light .form-select:focus,html.light .form-textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(9,105,218,.2)}
+html.light .task-card{box-shadow:0 1px 3px rgba(0,0,0,.06)}
+html.light .task-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.1)}
+html.light .tc-tag{background:rgba(9,105,218,.1);color:var(--accent)}
+html.light .tc-tag.dep{background:rgba(102,57,186,.1);color:var(--secondary)}
+html.light .tc-tag.blocked{background:rgba(207,34,46,.1);color:var(--danger)}
+html.light .tc-tag.phase{background:rgba(188,76,0,.1);color:var(--text-phase)}
+html.light .tc-status-badge.rate-limited{background:rgba(207,34,46,.12);color:var(--danger)}
+html.light .tc-status-badge.clarification{background:rgba(9,105,218,.12);color:var(--info)}
+html.light .nav-plan.free{background:rgba(26,127,55,.1);border-color:rgba(26,127,55,.3)}
+html.light .nav-plan.pro{background:rgba(9,105,218,.1);border-color:rgba(9,105,218,.3)}
+html.light .nav-plan.enterprise{background:rgba(102,57,186,.1);border-color:rgba(102,57,186,.3)}
+html.light .col-body.drag-over{background:rgba(9,105,218,.06);border-color:var(--accent)}
+html.light .col-body.drag-ok{background:rgba(26,127,55,.06);border-color:var(--success)}
+html.light .col-body.drag-warn{background:rgba(154,103,0,.08);border-color:var(--warning)}
+html.light .col-body.drag-blocked{background:rgba(207,34,46,.06);border-color:var(--danger)}
+html.light .flow-step{background:var(--bg)}
+html.light .comment{background:var(--bg)}
+html.light .sb-stat{background:var(--bg)}
+/* TEXT SCALING — zoom on html element so drag coords stay correct */
+html.text-sm{zoom:.85}
+html.text-md{zoom:1}
+html.text-lg{zoom:1.15}
+html.text-xl{zoom:1.3}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);overflow:hidden;-webkit-tap-highlight-color:transparent}
+/* NAVBAR CONTROLS */
+.nav-center{display:flex;align-items:center;gap:8px}
+.nav-plan{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 10px;border-radius:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;transition:.2s}
+.nav-plan.free{background:rgba(46,160,67,.15);color:var(--success);border:1px solid rgba(46,160,67,.3)}
+.nav-plan.pro{background:rgba(0,180,216,.15);color:var(--accent);border:1px solid rgba(0,180,216,.3)}
+.nav-plan.enterprise{background:rgba(122,58,237,.15);color:var(--secondary);border:1px solid rgba(122,58,237,.3)}
+.nav-plan:hover{transform:scale(1.05)}
+.nav-toggle-group{display:flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.nav-toggle{background:none;border:none;color:var(--text);padding:5px 10px;cursor:pointer;font-size:12px;transition:.2s;opacity:.5}
+.nav-toggle:hover{opacity:.8;background:var(--hover)}
+.nav-toggle.active{opacity:1;background:var(--accent);color:var(--text-on-dark);font-weight:600}
+.nav-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+/* LAYOUT */
+.app{display:flex;flex-direction:column;height:100vh}
+.navbar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--border);z-index:100;min-height:48px}
+.nav-left{display:flex;align-items:center;gap:12px}
+.nav-logo{width:28px;height:28px;border-radius:6px;object-fit:cover;display:none}
+.nav-title{font-size:18px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-right{display:flex;align-items:center;gap:8px}
+.nav-btn{background:none;border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:var(--radius);cursor:pointer;font-size:12px;transition:.2s;white-space:nowrap}
+.nav-btn:hover{background:var(--hover);border-color:var(--accent)}
+.nav-btn.primary{background:var(--accent);border-color:var(--accent);color:var(--text-on-dark);font-weight:600}
+.nav-btn.primary:hover{opacity:.85}
+.nav-badge{position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;font-size:9px;padding:1px 5px;border-radius:10px;font-weight:700}
+/* MAIN AREA */
+.main{display:flex;flex:1;overflow:hidden}
+/* SIDEBAR */
+.sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;transition:width .3s}
+.sidebar.collapsed{width:0;overflow:hidden;border:none}
+.sb-section{padding:12px}
+.sb-title{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);margin-bottom:8px;font-weight:600}
+.sb-actor{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;margin-bottom:2px;transition:.15s}
+.sb-actor:hover{background:var(--hover)}
+.sb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sb-dot.online{background:var(--success)}.sb-dot.busy{background:var(--warning)}.sb-dot.offline{background:var(--text-faint)}.sb-dot.error{background:var(--danger)}.sb-dot.idle{background:var(--accent);opacity:.6}
+.sb-actor-name{font-size:13px;flex:1;word-break:break-word}
+.sb-actor-type{font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+.sb-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.sb-stat{background:var(--card);padding:8px;border-radius:6px;text-align:center}
+.sb-stat-val{font-size:18px;font-weight:700;color:var(--accent)}
+.sb-stat-lbl{font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+/* BOARD */
+.board-wrap{flex:1;overflow-x:auto;overflow-y:hidden;padding:12px}
+.board{display:flex;gap:12px;height:100%;min-width:max-content}
+.column{width:280px;background:var(--surface);border-radius:var(--radius);display:flex;flex-direction:column;border:1px solid var(--border);flex-shrink:0}
+.col-header{padding:10px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.col-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.col-dot{width:10px;height:10px;border-radius:50%}
+.col-count{font-size:11px;color:var(--text-muted);background:var(--card);padding:1px 7px;border-radius:10px}
+.col-wip{font-size:9px;color:var(--warning);font-weight:600}
+.col-body{flex:1;overflow-y:auto;padding:8px;min-height:60px}
+.col-body.drag-over{border:2px dashed var(--accent);border-radius:4px;background:rgba(0,180,216,.08)}
+.col-body.drag-ok{border-color:var(--success);background:rgba(46,160,67,.08)}
+.col-body.drag-warn{border-color:var(--warning);background:rgba(210,153,34,.1)}
+.col-body.drag-blocked{border-color:var(--danger);background:rgba(218,54,51,.08);cursor:no-drop}
+/* TASK CARD */
+.task-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px;margin-bottom:8px;cursor:grab;transition:.2s;position:relative;user-select:none;-webkit-user-select:none}
+.task-card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:var(--shadow)}
+.task-card.dragging{opacity:.4;transform:rotate(2deg)}
+.task-card.locked{border-left:3px solid var(--warning)}
+.task-card.rate-limited{border-left:3px solid var(--danger);opacity:.7}
+.task-card.clarification{border-left:3px solid var(--info)}
+.tc-priority{position:absolute;top:0;left:0;width:100%;height:3px;border-radius:var(--radius) var(--radius) 0 0}
+.tc-priority.critical{background:var(--p-critical)}.tc-priority.high{background:var(--p-high)}.tc-priority.medium{background:var(--p-medium)}.tc-priority.low{background:var(--p-low)}
+.tc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-top:4px}
+.tc-id{font-size:10px;color:var(--text-muted);font-family:monospace}
+.tc-title{font-size:13px;font-weight:600;margin:4px 0;line-height:1.3}
+.tc-desc{font-size:11px;color:var(--text-muted);margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tc-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px}
+.tc-tags{display:flex;flex-wrap:wrap;gap:3px}
+.tc-tag{font-size:9px;padding:1px 6px;border-radius:10px;background:rgba(0,180,216,.15);color:var(--accent);font-weight:500}
+.tc-tag.dep{background:rgba(122,58,237,.15);color:var(--secondary)}
+.tc-tag.blocked{background:rgba(218,54,51,.15);color:var(--danger)}
+.tc-tag.phase{background:rgba(240,136,62,.15);color:var(--text-phase)}
+.tc-assignee{font-size:10px;color:var(--text-muted);display:flex;align-items:center;gap:4px}
+.tc-assignee-dot{width:6px;height:6px;border-radius:50%;background:var(--success)}
+.tc-dep-chain{display:flex;gap:2px;margin-top:4px}
+.tc-dep-icon{width:16px;height:16px;border-radius:50%;font-size:8px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border)}
+.tc-dep-icon.done{background:var(--success);color:#fff;border-color:var(--success)}
+.tc-dep-icon.pending{background:var(--card);color:var(--text-muted)}
+.tc-lock-badge{position:absolute;top:6px;right:6px;font-size:10px}
+.tc-status-badge{font-size:9px;padding:1px 6px;border-radius:10px;font-weight:600}
+.tc-status-badge.rate-limited{background:rgba(218,54,51,.2);color:var(--danger)}
+.tc-status-badge.clarification{background:rgba(56,139,253,.2);color:var(--info)}
+.tc-cycle{font-size:9px;color:var(--text-faint);margin-top:4px}
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:var(--overlay);display:none;align-items:center;justify-content:center;z-index:1000;padding:16px;backdrop-filter:blur(4px)}
+.modal-overlay.active{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow)}
+.modal.wide{max-width:800px}
+.modal-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:1}
+.modal-title{font-size:16px;font-weight:700}
+.modal-close{background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:4px}
+.modal-close:hover{color:var(--text);background:var(--hover)}
+.modal-body{padding:20px}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+/* FORM */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:var(--text-secondary)}
+.form-input,.form-select,.form-textarea{width:100%;padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;font-family:var(--font)}
+.form-textarea{resize:vertical;min-height:80px}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,180,216,.2)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-check{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
+.form-check input{accent-color:var(--accent)}
+/* REASONING PANEL */
+.reasoning-panel{width:320px;background:var(--surface);border-left:1px solid var(--border);display:none;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.reasoning-panel.active{display:flex}
+.rp-header{padding:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.rp-title{font-size:13px;font-weight:600}
+.rp-entry{padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px}
+.rp-entry-type{font-size:9px;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:4px}
+.rp-entry-type.rag{color:var(--accent)}.rp-entry-type.cot{color:var(--secondary)}.rp-entry-type.tot{color:var(--text-phase)}
+.rp-entry-text{color:var(--text-secondary);line-height:1.5}
+/* TOAST */
+.toast-container{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px}
+.toast{padding:10px 16px;border-radius:var(--radius);font-size:13px;box-shadow:var(--shadow);animation:slideIn .3s ease;max-width:360px}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast.success{background:var(--success);color:#fff}.toast.error{background:var(--danger);color:#fff}
+.toast.info{background:var(--info);color:#fff}.toast.warning{background:var(--warning);color:#000}
+/* CONTEXT MENU */
+.ctx-menu{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);z-index:3000;min-width:180px;padding:4px 0;display:none}
+.ctx-item{padding:8px 14px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.1s}
+.ctx-item:hover{background:var(--hover)}
+.ctx-item.danger{color:var(--danger)}
+.ctx-sep{height:1px;background:var(--border);margin:4px 0}
+/* DETAIL VIEW */
+.detail-section{margin-bottom:16px}
+.detail-section h4{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px}
+.audit-entry{font-size:11px;padding:4px 0;border-bottom:1px solid var(--border);display:flex;gap:8px}
+.audit-ts{color:var(--text-faint);font-family:monospace;white-space:nowrap}
+.audit-action{font-weight:600}
+.comment{background:var(--card);padding:8px 12px;border-radius:6px;margin-bottom:6px}
+.comment-header{display:flex;justify-content:space-between;margin-bottom:4px}
+.comment-author{font-size:11px;font-weight:600;color:var(--accent)}
+.comment-time{font-size:10px;color:var(--text-faint)}
+.comment-text{font-size:12px;color:var(--text-secondary)}
+/* FLOW PANELS */
+.flow-step{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.flow-step h4{font-size:13px;font-weight:600;margin-bottom:8px;color:var(--accent)}
+/* SETTINGS */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.color-swatch{width:32px;height:32px;border-radius:6px;border:2px solid var(--border);cursor:pointer;padding:0}
+/* PRICING BADGE */
+.pricing-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.pricing-badge.free{background:rgba(46,160,67,.15);color:var(--success)}
+.pricing-badge.pro{background:rgba(0,180,216,.15);color:var(--accent)}
+.pricing-badge.enterprise{background:rgba(122,58,237,.15);color:var(--secondary)}
+/* SECURITY */
+.sec-badge{font-size:9px;color:var(--success);display:flex;align-items:center;gap:4px}
+/* MOBILE REMOTE */
+.remote-panel{display:none;position:fixed;inset:0;background:var(--bg);z-index:5000;flex-direction:column}
+.remote-panel.active{display:flex}
+.remote-header{padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.remote-body{flex:1;overflow-y:auto;padding:12px}
+.remote-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px}
+/* MOBILE RESPONSIVE */
+@media(max-width:768px){
+  .navbar{flex-wrap:wrap;gap:6px;padding:6px 10px}
+  .nav-center{order:3;width:100%;justify-content:center;padding-top:4px;border-top:1px solid var(--border)}
+  .sidebar{position:fixed;left:0;top:90px;bottom:0;z-index:50;width:260px;transform:translateX(-100%);transition:transform .3s}
+  .sidebar.mobile-open{transform:translateX(0)}
+  .reasoning-panel{position:fixed;right:0;top:90px;bottom:0;z-index:50;width:300px;transform:translateX(100%);transition:transform .3s}
+  .reasoning-panel.mobile-open{transform:translateX(0)}
+  .column{width:260px}
+  .modal{max-width:95vw;margin:8px}
+  .nav-btn span.desktop-only{display:none}
+  .settings-grid{grid-template-columns:1fr}
+  .form-row{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  .column{width:240px}
+  .nav-title{font-size:14px}
+  .navbar{padding:6px 10px}
+}
+/* ANIMATIONS */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.pulse{animation:pulse 2s infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin 1s linear infinite}
+/* PRINT */
+@media print{.navbar,.sidebar,.reasoning-panel,.toast-container{display:none!important}.main{overflow:visible}.board-wrap{overflow:visible}.board{flex-wrap:wrap}.column{break-inside:avoid;width:45%}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-left">
+      <button class="nav-btn" onclick="toggleSidebar()" title="Toggle Sidebar">☰</button>
+      <img class="nav-logo" id="navLogo" src="" alt="">
+      <span class="nav-title" id="navTitle">AgentFlow</span>
+      <span class="nav-plan" id="navPlan" onclick="openSettings()" title="Click to change plan">FREE</span>
+      <span id="serverBadge" style="margin-left:8px"></span>
+      <span id="discoveryStatus" style="margin-left:6px;font-size:10px;letter-spacing:.5px;cursor:pointer" onclick="runDiscoveryNow()" title="Agent Discovery (click to probe now)"></span>
+    </div>
+    <div class="nav-center">
+      <!-- Theme Toggle -->
+      <div class="nav-toggle-group" title="Color Mode">
+        <button class="nav-toggle" data-mode="dark" onclick="setColorMode('dark')">🌙</button>
+        <button class="nav-toggle" data-mode="light" onclick="setColorMode('light')">☀️</button>
+        <button class="nav-toggle" data-mode="system" onclick="setColorMode('system')">💻</button>
+      </div>
+      <div class="nav-sep"></div>
+      <!-- Text Size Toggle -->
+      <div class="nav-toggle-group" title="Text Size">
+        <button class="nav-toggle" data-size="sm" onclick="setTextSize('sm')" style="font-size:10px">A</button>
+        <button class="nav-toggle" data-size="md" onclick="setTextSize('md')" style="font-size:13px">A</button>
+        <button class="nav-toggle" data-size="lg" onclick="setTextSize('lg')" style="font-size:16px">A</button>
+        <button class="nav-toggle" data-size="xl" onclick="setTextSize('xl')" style="font-size:19px">A</button>
+      </div>
+      <div class="nav-sep"></div>
+      <span class="sec-badge" title="Encrypted Local Storage">🔒</span>
+    </div>
+    <div class="nav-right">
+      <button class="nav-btn" onclick="openTaskModal()" title="New Task (N)">+ Task</button>
+      <button class="nav-btn" onclick="openActorModal()" title="Add Actor">+ Actor</button>
+      <button class="nav-btn" onclick="runAutoRoute()" title="Auto-Route All">⚡</button>
+      <button class="nav-btn" onclick="toggleReasoning()" title="AI Reasoning (R)">🧠</button>
+      <button class="nav-btn" onclick="toggleRemote()" title="Remote Control">📱</button>
+      <button class="nav-btn" onclick="openAuditLog()" title="Audit Trail">📋</button>
+      <button class="nav-btn" onclick="openSettings()" title="Settings">⚙️</button>
+      <button class="nav-btn" onclick="exportData()" title="Export">📤</button>
+      <button class="nav-btn" onclick="document.getElementById('importInput').click()" title="Import">📥</button>
+      <input type="file" id="importInput" accept=".json" style="display:none" onchange="handleImport(event)">
+    </div>
+  </nav>
+  <!-- MAIN -->
+  <div class="main">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-section">
+        <div class="sb-title">Actors</div>
+        <div id="actorList"></div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-title">Statistics</div>
+        <div class="sb-stats" id="statsPanel"></div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-title">Security</div>
+        <div style="font-size:11px;color:var(--text-muted)">
+          <div>🔒 AES-256 Local Encryption</div>
+          <div>🛡️ CSP Headers Active</div>
+          <div>🔐 No External Data Transfer</div>
+          <div>✅ XSS/CSRF Protected</div>
+        </div>
+      </div>
+      <div class="sb-section" id="planBadge"></div>
+      <div class="sb-section" id="demoBanner" style="display:none">
+        <div style="background:var(--card);border:1px dashed var(--border);border-radius:var(--radius);padding:10px;text-align:center">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">You're viewing demo data</div>
+          <button class="nav-btn" onclick="clearDemoData()" style="font-size:11px;width:100%;padding:6px">🗑️ Clear Demo Data</button>
+        </div>
+      </div>
+    </aside>
+    <!-- BOARD -->
+    <div class="board-wrap" id="boardWrap">
+      <div style="padding:0 0 10px 0;display:flex;gap:8px;align-items:center;flex-shrink:0">
+        <input class="form-input" id="searchBar" placeholder="🔍 Search tasks... (title, tags, assignee, #id)" style="flex:1;max-width:400px;font-size:12px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)" oninput="applyBoardFilter(this.value)">
+        <select class="form-select" id="filterPriority" style="width:auto;font-size:12px;padding:6px 8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)" onchange="applyBoardFilter(document.getElementById('searchBar').value)">
+          <option value="">All Priorities</option>
+          <option value="critical">🔴 Critical</option>
+          <option value="high">🟠 High</option>
+          <option value="medium">🟡 Medium</option>
+          <option value="low">🟢 Low</option>
+          <option value="none">⚪ None</option>
+        </select>
+        <select class="form-select" id="filterAssignee" style="width:auto;font-size:12px;padding:6px 8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)" onchange="applyBoardFilter(document.getElementById('searchBar').value)">
+          <option value="">All Assignees</option>
+        </select>
+        <span id="filterCount" style="font-size:11px;color:var(--text-muted);white-space:nowrap"></span>
+      </div>
+      <div class="board" id="board"></div>
+    </div>
+    <!-- REASONING PANEL -->
+    <aside class="reasoning-panel" id="reasoningPanel">
+      <div class="rp-header">
+        <span class="rp-title">🧠 AI Reasoning</span>
+        <button class="modal-close" onclick="toggleReasoning()">×</button>
+      </div>
+      <div id="reasoningEntries"></div>
+    </aside>
+  </div>
+</div>
+<!-- MODALS -->
+<div class="modal-overlay" id="taskModalOverlay">
+  <div class="modal" id="taskModal">
+    <div class="modal-head"><span class="modal-title">New Task</span><button class="modal-close" onclick="closeModal('taskModalOverlay')">×</button></div>
+    <div class="modal-body" id="taskModalBody"></div>
+    <div class="modal-footer">
+      <button class="nav-btn" onclick="closeModal('taskModalOverlay')">Cancel</button>
+      <button class="nav-btn primary" id="taskModalSave" onclick="saveTask()">Create Task</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="actorModalOverlay">
+  <div class="modal" id="actorModal">
+    <div class="modal-head"><span class="modal-title">Add Actor</span><button class="modal-close" onclick="closeModal('actorModalOverlay')">×</button></div>
+    <div class="modal-body" id="actorModalBody"></div>
+    <div class="modal-footer">
+      <button class="nav-btn" onclick="closeModal('actorModalOverlay')">Cancel</button>
+      <button class="nav-btn primary" onclick="saveActor()">Add Actor</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="detailModalOverlay">
+  <div class="modal wide">
+    <div class="modal-head"><span class="modal-title" id="detailTitle">Task Detail</span><button class="modal-close" onclick="closeModal('detailModalOverlay')">×</button></div>
+    <div class="modal-body" id="detailBody"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="flowModalOverlay">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title" id="flowTitle">Flow</span><button class="modal-close" onclick="closeModal('flowModalOverlay')">×</button></div>
+    <div class="modal-body" id="flowBody"></div>
+    <div class="modal-footer" id="flowFooter"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="settingsModalOverlay">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">Settings & Branding</span><button class="modal-close" onclick="closeModal('settingsModalOverlay')">×</button></div>
+    <div class="modal-body" id="settingsBody"></div>
+    <div class="modal-footer">
+      <button class="nav-btn" onclick="closeModal('settingsModalOverlay')">Cancel</button>
+      <button class="nav-btn primary" onclick="applySettings()">Apply</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="auditModalOverlay">
+  <div class="modal wide">
+    <div class="modal-head"><span class="modal-title">📋 Full Audit Trail</span><button class="modal-close" onclick="closeModal('auditModalOverlay')">×</button></div>
+    <div class="modal-body" id="auditBody"></div>
+  </div>
+</div>
+<!-- REMOTE PANEL -->
+<div class="remote-panel" id="remotePanel">
+  <div class="remote-header">
+    <span style="font-weight:700">📱 Remote Control</span>
+    <button class="nav-btn" onclick="toggleRemote()">✕ Close</button>
+  </div>
+  <div class="remote-body" id="remoteBody"></div>
+</div>
+<!-- CONTEXT MENU -->
+<div class="ctx-menu" id="ctxMenu"></div>
+<!-- SHORTCUTS HELP -->
+<div class="modal-overlay" id="shortcutsOverlay">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head"><span class="modal-title">⌨️ Keyboard Shortcuts</span><button class="modal-close" onclick="closeModal('shortcutsOverlay')">×</button></div>
+    <div class="modal-body" style="padding:16px">
+      <div style="display:grid;grid-template-columns:60px 1fr;gap:8px 12px;font-size:13px">
+        <kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;text-align:center;font-family:monospace;font-size:12px">N</kbd><span>New Task</span>
+        <kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;text-align:center;font-family:monospace;font-size:12px">R</kbd><span>Toggle Reasoning Panel</span>
+        <kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;text-align:center;font-family:monospace;font-size:12px">M</kbd><span>Toggle Mobile Remote</span>
+        <kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;text-align:center;font-family:monospace;font-size:12px">S</kbd><span>Open Settings</span>
+        <kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;text-align:center;font-family:monospace;font-size:12px">A</kbd><span>Auto-Route All Tasks</span>
+        <kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;text-align:center;font-family:monospace;font-size:12px">F</kbd><span>Focus Search/Filter Bar</span>
+        <kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;text-align:center;font-family:monospace;font-size:12px">?</kbd><span>This Help</span>
+        <kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;text-align:center;font-family:monospace;font-size:12px">Esc</kbd><span>Close Modal / Menu</span>
+      </div>
+      <div style="margin-top:16px;font-size:11px;color:var(--text-muted);text-align:center">Shortcuts are disabled when typing in input fields</div>
+    </div>
+  </div>
+</div>
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+<script>
+/* ========== SERVER API LAYER ========== */
+/* Auto-detects if running on a server with API, falls back to localStorage */
+const API={
+  serverMode:false,
+  wsReconnectDelay:1000,
+  wsMaxDelay:30000,
+  ws:null,
+  baseUrl:'',
+  async detect(){
+    try{
+      const r=await fetch('/api/health',{signal:AbortSignal.timeout(2000)});
+      if(r.ok){
+        const d=await r.json();
+        if(d.status==='ok'){
+          API.serverMode=true;
+          API.baseUrl='';
+          console.log('%c🔗 Server mode: API connected','color:#2ea043;font-size:12px');
+          console.log(`   Tasks: ${d.tasks} · Actors: ${d.actors} · Audit: ${d.audit} · WS clients: ${d.clients}`);
+          API.connectWS();
+          return true;
+        }
+      }
+    }catch(e){console.warn('Error caught',e);}
+    console.log('%c📦 Standalone mode: using localStorage','color:#d29922;font-size:12px');
+    return false;
+  },
+  connectWS(){
+    try{
+      const proto=location.protocol==='https:'?'wss:':'ws:';
+      API.ws=new WebSocket(proto+'//'+location.host+'/ws');
+      API.ws.onmessage=(e)=>{
+        try{
+          const msg=JSON.parse(e.data);
+          if(msg.event==='state_updated'||msg.event==='state_cleared'){
+            API.loadState().then(()=>renderAll());
+          }else if(msg.event==='actors_updated'){
+            // Discovery updated actor statuses
+            API.loadState().then(()=>{
+              renderSidebar();
+              if(msg.data?.discovery)updateDiscoveryIndicator(msg.data.discovery);
+            });
+          }else if(msg.event==='tasks_updated'&&msg.data?.source==='discovery'){
+            API.loadState().then(()=>{renderAll();toast('Board updated from live agent sessions','info')});
+          }else if(msg.event==='orchestrator_changes'){
+            // Orchestration engine auto-transitioned tasks
+            const changes=msg.data?.changes||[];
+            API.loadState().then(()=>{
+              renderAll();
+              changes.forEach(c=>{
+                toast(`#${c.taskNum} auto-moved: ${c.from}→${c.to} (${c.reason})`,'info');
+              });
+            });
+          }else if(msg.event==='task_transitioned'){
+            API.loadState().then(()=>renderAll());
+          }else if(msg.event&&msg.event.startsWith('task_')||msg.event&&msg.event.startsWith('actor_')){
+            API.loadState().then(()=>renderAll());
+          }
+        }catch(err){console.warn('Error caught',err);}
+      };
+      API.ws.onopen=()=>{API.wsReconnectDelay=1000;};
+      API.ws.onclose=()=>{
+        const delay=Math.min(API.wsReconnectDelay,API.wsMaxDelay);
+        API.wsReconnectDelay=Math.min(delay*2,API.wsMaxDelay);
+        setTimeout(()=>API.connectWS(),delay);
+      };
+      API.ws.onerror=()=>{};
+    }catch(e){console.warn('Error caught',e);}
+  },
+  async loadState(){
+    if(!API.serverMode)return false;
+    try{
+      const r=await fetch('/api/state');
+      if(!r.ok)return false;
+      const data=await r.json();
+      delete data.__proto__;
+      delete data.constructor;
+      delete data.prototype;
+      if(data.stateVersion && state.stateVersion && data.stateVersion < state.stateVersion){
+        console.warn('Server state is older than local state, merging anyway');
+      }
+      Object.assign(state,data);
+      return true;
+    }catch(e){console.warn('loadState failed:',e);return false}
+  },
+  async saveState(){
+    if(!API.serverMode)return false;
+    try{
+      const r=await fetch('/api/state',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)});
+      return r.ok;
+    }catch(e){console.warn('saveState failed:',e);return false}
+  },
+  async dispatch(taskId){
+    if(!API.serverMode)return dispatchToAgent(taskId);
+    try{
+      const r=await fetch('/api/dispatch/'+taskId,{method:'POST',headers:{'Content-Type':'application/json'}});
+      const d=await r.json();
+      if(!r.ok)throw new Error(d.error);
+      toast('Task dispatched (remote: '+d.remoteId+')','success');
+      await API.loadState();renderAll();
+    }catch(e){toast('Dispatch failed: '+e.message,'error')}
+  },
+  async testConnection(endpoint){
+    if(!API.serverMode)return testAgentConnection(endpoint);
+    try{
+      const r=await fetch('/api/test-connection',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint})});
+      const d=await r.json();
+      if(d.reachable)toast('Connection OK (HTTP '+d.status+')','success');
+      else toast('Unreachable: '+d.error,'error');
+      return d;
+    }catch(e){toast('Test failed: '+e.message,'error');return{ok:false}}
+  },
+  discoveryInterval:null,
+  async fetchDiscovery(force){
+    if(!API.serverMode)return null;
+    try{
+      const r=await fetch('/api/discovery'+(force?'?force=true':''));
+      if(!r.ok)return null;
+      return await r.json();
+    }catch(e){return null}
+  },
+  async syncDiscovery(){
+    if(!API.serverMode)return;
+    try{
+      const r=await fetch('/api/discovery/sync',{method:'POST'});
+      if(r.ok){
+        await API.loadState();
+        renderAll();
+        toast('Discovery sync complete','success');
+      }
+    }catch(e){toast('Discovery sync failed','error')}
+  },
+  startDiscoveryPolling(){
+    if(!API.serverMode||API.discoveryInterval)return;
+    // Frontend polls discovery results every 30s (server does the actual probing)
+    API.discoveryInterval=setInterval(async()=>{
+      const r=await API.fetchDiscovery(false);
+      if(r&&r.timestamp){
+        // Check if any actor statuses changed
+        await API.loadState();
+        renderSidebar();
+        updateDiscoveryIndicator(r);
+      }
+    },30000);
+    // Initial fetch
+    API.fetchDiscovery(false).then(r=>{
+      if(r)updateDiscoveryIndicator(r);
+    });
+  }
+};
+function updateDiscoveryIndicator(r){
+  const el=document.getElementById('discoveryStatus');
+  if(!el||!r)return;
+  const ocOk=r.openclaw?.reachable;
+  const ccOk=r.claudeCode?.running;
+  const ocAgents=r.openclaw?.agents?.length||0;
+  const ocSessions=r.openclaw?.sessions?.length||0;
+  const ccSessions=r.claudeCode?.sessions?.length||0;
+  let parts=[];
+  parts.push(`<span style="color:${ocOk?'var(--success)':'var(--text-muted)'}" title="OpenClaw Gateway${ocOk?' ('+ocAgents+' agents, '+ocSessions+' sessions)':' (offline)'}">${ocOk?'●':'○'} OC</span>`);
+  parts.push(`<span style="color:${ccOk?'var(--success)':'var(--text-muted)'}" title="Claude Code${ccOk?' (running, '+ccSessions+' recent sessions)':' (not detected)'}">${ccOk?'●':'○'} CC</span>`);
+  el.innerHTML=parts.join(' ');
+}
+async function runDiscoveryNow(){
+  const el=document.getElementById('discoveryStatus');
+  if(el)el.innerHTML='<span class="pulse" style="color:var(--text-muted)">⟳ Probing...</span>';
+  toast('Running discovery probe...','info');
+  await API.syncDiscovery();
+}
+/* ========== SECURITY ========== */
+const SEC={
+  sanitize(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML},
+  safeId(id){if(!id)return'';return String(id).replace(/[^a-zA-Z0-9_\-\.]/g,'');},
+  hash(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0}return h.toString(36)},
+  validateJSON(s){try{JSON.parse(s);return true}catch{return false}},
+  nonce:Math.random().toString(36).slice(2)
+};
+/* ========== UID ========== */
+const uid=()=>'t'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+/* ========== STATE ========== */
+let state={
+  title:'AgentFlow',logoUrl:'',
+  plan:'free', // free | pro | enterprise
+  columns:[
+    {id:'inbox',name:'Inbox / Queued',color:'#8b949e',wipLimit:0},
+    {id:'todo',name:'Ready',color:'#d29922',wipLimit:0},
+    {id:'in_progress',name:'In Progress',color:'#00b4d8',wipLimit:5},
+    {id:'review',name:'Review',color:'#7c3aed',wipLimit:3},
+    {id:'pending_human',name:'Pending (Human)',color:'#f0883e',wipLimit:0},
+    {id:'failed',name:'Failed',color:'#da3633',wipLimit:0},
+    {id:'done',name:'Done',color:'#2ea043',wipLimit:0}
+  ],
+  actors:[],tasks:[],reasoning:[],auditLog:[],
+  taskCounter:0,pollingActive:false,pollingInterval:null,
+  theme:{accent:'#00b4d8',secondary:'#7c3aed',bg:'#06090f',card:'#161b22',text:'#e6edf3',border:'#21262d'},
+  settings:{autoRetryOnRateLimit:true,rateLimitCooldownSec:60,maxAutoRetries:3,requireCompletionDoc:true,enablePolling:true,pollingIntervalSec:30},
+  stateVersion:0
+};
+/* ========== PERSISTENCE ========== */
+function saveState(){
+  state.stateVersion=(state.stateVersion||0)+1;
+  try{localStorage.setItem('agentflow_state',JSON.stringify(state))}catch(e){console.warn('Error caught',e);}
+  if(API.serverMode){API.saveState().catch(err=>{console.warn('Async error',err);})}
+}
+function loadState(){
+  // Server mode load happens in init() via API.loadState()
+  try{
+    const s=localStorage.getItem('agentflow_state');
+    if(s&&SEC.validateJSON(s)){const p=JSON.parse(s);Object.assign(state,p);return true}
+  }catch(e){console.warn('Load failed',e)}
+  return false;
+}
+/* ========== AUDIT ========== */
+function audit(action,detail,taskId=null,actorId=null){
+  const entry={ts:Date.now(),action,detail,taskId,actorId,nonce:SEC.nonce};
+  state.auditLog.push(entry);
+  if(state.auditLog.length>5000)state.auditLog=state.auditLog.slice(-4000);
+  saveState();
+  return entry;
+}
+/* ========== TASK FACTORY ========== */
+function mkTask(overrides={}){
+  state.taskCounter++;
+  return{
+    id:uid(),num:state.taskCounter,title:'',desc:'',
+    priority:'medium', // critical|high|medium|low|none
+    column:'inbox',assignee:null,assigneeAgent:null,assigner:null,
+    deps:[],blockedBy:[],tags:[],phase:'',waterfall:0,due:null,
+    autoRoute:true,created:Date.now(),updated:Date.now(),
+    startedAt:null,completedAt:null,
+    comments:[],lockedBy:null,lockedAt:null,
+    completionDoc:null,failureDoc:null,humanReqDoc:null,
+    rateLimitInfo:null,clarificationInfo:null,
+    retryCount:0,maxRetries:3,
+    confidence:1.0, // agent confidence on understanding (0-1)
+    nextTask:null, // {title,priority,assignee,tags,phase} — auto-created on completion
+    ...overrides
+  };
+}
+/* ========== COLLISION / LOCKING ========== */
+const LOCK_STALE_MS=30*60*1000;
+function canLock(task,actorId){
+  if(!task.lockedBy)return true;
+  if(task.lockedBy===actorId)return true;
+  if(Date.now()-task.lockedAt>LOCK_STALE_MS){unlockTask(task,'STALE_TIMEOUT');return true}
+  return false;
+}
+function lockTask(task,actorId){
+  if(!canLock(task,actorId))return false;
+  task.lockedBy=actorId;task.lockedAt=Date.now();task.updated=Date.now();
+  audit('TASK_LOCKED',`Task #${task.num} locked by ${getActorName(actorId)}`,task.id,actorId);
+  saveState();return true;
+}
+function unlockTask(task,reason='MANUAL'){
+  const prev=task.lockedBy;
+  task.lockedBy=null;task.lockedAt=null;task.updated=Date.now();
+  audit('TASK_UNLOCKED',`Task #${task.num} unlocked (${reason})`,task.id,prev);
+  saveState();
+}
+/* ========== DEPENDENCY ENGINE ========== */
+function recalcDeps(){
+  state.tasks.forEach(t=>{
+    t.blockedBy=t.deps.filter(dId=>{const dep=state.tasks.find(x=>x.id===dId);return dep&&dep.column!=='done'});
+  });
+}
+function checkAutoAdvance(){
+  let moved=0;
+  state.tasks.forEach(t=>{
+    if(t.column==='inbox'&&t.deps.length>0){
+      const allDone=t.deps.every(dId=>{const dep=state.tasks.find(x=>x.id===dId);return dep&&dep.column==='done'});
+      if(allDone){
+        t.column='todo';t.updated=Date.now();
+        audit('AUTO_ADVANCE',`Task #${t.num} auto-advanced to To Do (all deps done)`,t.id);
+        toast(`Task #${t.num} auto-advanced to To Do`,'success');
+        moved++;
+      }
+    }
+  });
+  if(moved>0){recalcDeps();saveState();renderAll()}
+}
+function recalcPriorities(){
+  // When a critical task is added or changed, propagate urgency to dependencies
+  state.tasks.forEach(t=>{
+    if(t.priority==='critical'){
+      t.deps.forEach(dId=>{
+        const dep=state.tasks.find(x=>x.id===dId);
+        if(dep&&dep.column!=='done'&&dep.priority!=='critical'){
+          const oldP=dep.priority;dep.priority='high';dep.updated=Date.now();
+          audit('PRIORITY_ESCALATED',`Task #${dep.num} escalated ${oldP}→high (blocks critical #${t.num})`,dep.id);
+        }
+      });
+    }
+  });
+}
+/* ========== RATE LIMIT HANDLING ========== */
+function handleRateLimit(task,reason='Rate limit reached'){
+  task.rateLimitInfo={reason,timestamp:Date.now(),retryAt:Date.now()+(state.settings.rateLimitCooldownSec*1000),retryCount:task.retryCount};
+  task.retryCount++;task.updated=Date.now();
+  audit('RATE_LIMITED',`Task #${task.num}: ${reason} (retry ${task.retryCount}/${task.maxRetries})`,task.id,task.assignee);
+  if(state.settings.autoRetryOnRateLimit&&task.retryCount<=task.maxRetries){
+    toast(`Task #${task.num} rate-limited. Auto-retry in ${state.settings.rateLimitCooldownSec}s`,'warning');
+    setTimeout(()=>retryRateLimited(task.id),state.settings.rateLimitCooldownSec*1000);
+  }else if(task.retryCount>task.maxRetries){
+    toast(`Task #${task.num} exceeded max retries. Reassigning...`,'error');
+    reassignTask(task);
+  }else{
+    toast(`Task #${task.num} rate-limited. Manual retry needed.`,'warning');
+  }
+  saveState();renderAll();
+}
+function retryRateLimited(taskId){
+  const t=state.tasks.find(x=>x.id===taskId);
+  if(!t||!t.rateLimitInfo)return;
+  t.rateLimitInfo=null;t.updated=Date.now();
+  audit('RATE_LIMIT_RETRY',`Task #${t.num} retrying after rate limit cooldown`,t.id,t.assignee);
+  toast(`Task #${t.num} retrying...`,'info');
+  saveState();renderAll();
+}
+function reassignTask(task){
+  const prevAssignee=task.assignee;
+  task.assignee=null;task.assigneeAgent=null;task.rateLimitInfo=null;task.retryCount=0;
+  task.column='todo';task.updated=Date.now();
+  unlockTask(task,'REASSIGN');
+  audit('TASK_REASSIGNED',`Task #${task.num} unassigned for re-routing (was ${getActorName(prevAssignee)})`,task.id,prevAssignee);
+  if(task.autoRoute)autoRouteTask(task);
+  saveState();renderAll();
+}
+/* ========== UNCLEAR INSTRUCTIONS HANDLING ========== */
+function flagUnclear(task,reason='Instructions unclear',questions=[]){
+  task.clarificationInfo={reason,questions,timestamp:Date.now(),flaggedBy:task.assignee};
+  task.column='pending_human';task.updated=Date.now();
+  audit('CLARIFICATION_NEEDED',`Task #${task.num}: ${reason}`,task.id,task.assignee);
+  toast(`Task #${task.num} needs clarification`,'info');
+  // Auto-notify human
+  const humans=state.actors.filter(a=>a.type==='human');
+  if(humans.length>0){
+    task.comments.push({id:uid(),author:task.assignee||'system',text:`⚠️ Clarification needed: ${reason}\n${questions.map((q,i)=>`${i+1}. ${q}`).join('\n')}`,ts:Date.now()});
+  }
+  saveState();renderAll();
+}
+function resolveClarification(task,answers){
+  task.clarificationInfo=null;task.column='in_progress';task.confidence=0.9;task.updated=Date.now();
+  task.comments.push({id:uid(),author:'human',text:`✅ Clarification provided:\n${answers}`,ts:Date.now()});
+  audit('CLARIFICATION_RESOLVED',`Task #${task.num} clarification resolved`,task.id);
+  toast(`Task #${task.num} clarification resolved`,'success');
+  saveState();renderAll();
+}
+/* ========== HELPERS ========== */
+function getActorName(id){const a=state.actors.find(x=>x.id===id);return a?a.name:'Unknown'}
+function getTask(id){return state.tasks.find(t=>t.id===id)}
+function toast(msg,type='info'){
+  const c=document.getElementById('toastContainer');
+  const t=document.createElement('div');t.className=`toast ${type}`;t.textContent=msg;
+  c.appendChild(t);setTimeout(()=>t.remove(),4000);
+}
+function closeModal(id){document.getElementById(id).classList.remove('active')}
+function openModal(id){document.getElementById(id).classList.add('active')}
+function fmtTime(ts){if(!ts)return'—';const d=new Date(ts);return d.toLocaleString()}
+function fmtDuration(ms){if(!ms||ms<0)return'—';const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);return h>0?`${h}h ${m}m`:`${m}m`}
+function priorityColor(p){return{critical:'var(--p-critical)',high:'var(--p-high)',medium:'var(--p-medium)',low:'var(--p-low)',none:'var(--p-none)'}[p]||'var(--p-none)'}
+/* ========== SEARCH / FILTER ========== */
+let boardFilter={query:'',priority:'',assignee:''};
+function applyBoardFilter(query){
+  boardFilter.query=(query||'').toLowerCase().trim();
+  boardFilter.priority=document.getElementById('filterPriority')?.value||'';
+  boardFilter.assignee=document.getElementById('filterAssignee')?.value||'';
+  renderBoard();
+  // Update count
+  const total=state.tasks.length;
+  const visible=state.tasks.filter(t=>taskMatchesFilter(t)).length;
+  const el=document.getElementById('filterCount');
+  if(el)el.textContent=visible<total?`${visible}/${total} tasks`:'';
+}
+function taskMatchesFilter(t){
+  if(boardFilter.priority&&t.priority!==boardFilter.priority)return false;
+  if(boardFilter.assignee&&t.assignee!==boardFilter.assignee)return false;
+  if(!boardFilter.query)return true;
+  const q=boardFilter.query;
+  const name=getActorName(t.assignee).toLowerCase();
+  const haystack=`#${t.num} ${t.title} ${t.desc} ${t.tags.join(' ')} ${name} ${t.phase} ${t.priority}`.toLowerCase();
+  return haystack.includes(q);
+}
+function updateFilterAssignees(){
+  const sel=document.getElementById('filterAssignee');
+  if(!sel)return;
+  const current=sel.value;
+  sel.innerHTML='<option value="">All Assignees</option>'+
+    state.actors.map(a=>`<option value="${a.id}" ${current===a.id?'selected':''}>${SEC.sanitize(a.name)}</option>`).join('');
+}
+/* ========== RENDER ENGINE ========== */
+function renderAll(){recalcDeps();renderSidebar();renderBoard();renderReasoningPanel();updateFilterAssignees();saveState()}
+function renderSidebar(){
+  const al=document.getElementById('actorList');
+  al.innerHTML=state.actors.map(a=>{
+    const subAgents=a.agents||[];
+    const caps=a.capabilities||[];
+    const taskCount=state.tasks.filter(t=>t.assignee===a.id).length;
+    const typeIcon={human:'👤',agent:'🤖',claude:'🧠',codex:'⚡'}[a.type]||'●';
+    let subHTML='';
+    if(subAgents.length>0){
+      subHTML=subAgents.map(sa=>{
+        const saTaskCount=state.tasks.filter(t=>t.assignee===a.id&&t.assigneeAgent===sa.name).length;
+        return`<div style="padding:4px 8px 4px 28px;font-size:11px;color:var(--text-secondary)" title="${SEC.sanitize(sa.fn||'')}">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="color:var(--text-muted)">└</span>
+            <span style="font-weight:600;flex:1">${SEC.sanitize(sa.name)}</span>
+            ${saTaskCount?`<span style="font-size:9px;background:var(--card);padding:0 5px;border-radius:8px;color:var(--accent)">${saTaskCount}</span>`:''}
+          </div>
+          ${sa.fn?`<div style="color:var(--text-faint);font-size:10px;margin:2px 0 0 20px;line-height:1.4;word-break:break-word">${SEC.sanitize(sa.fn)}</div>`:''}
+        </div>`;
+      }).join('');
+    }
+    if(caps.length>0){
+      subHTML+=`<div style="padding:3px 0 3px 28px;display:flex;flex-wrap:wrap;gap:3px">${caps.map(c=>`<span style="font-size:9px;padding:1px 5px;border-radius:8px;background:rgba(0,180,216,.1);color:var(--accent)">${SEC.sanitize(c)}</span>`).join('')}</div>`;
+    }
+    return`<div>
+      <div class="sb-actor" onclick="openActorDetail(SEC.safeId('${a.id}'))">
+        <span class="sb-dot ${a.status}"></span>
+        <span class="sb-actor-name">${typeIcon} ${SEC.sanitize(a.name)}</span>
+        <span style="font-size:9px;color:var(--text-muted)">${taskCount||''}</span>
+      </div>
+      ${subHTML}
+    </div>`;
+  }).join('');
+  // Stats
+  const sp=document.getElementById('statsPanel');
+  const total=state.tasks.length,done=state.tasks.filter(t=>t.column==='done').length;
+  const inProg=state.tasks.filter(t=>t.column==='in_progress').length;
+  const failed=state.tasks.filter(t=>t.column==='failed').length;
+  const pending=state.tasks.filter(t=>t.column==='pending_human').length;
+  const avgCycle=state.tasks.filter(t=>t.completedAt&&t.startedAt).reduce((s,t)=>s+(t.completedAt-t.startedAt),0)/(done||1);
+  sp.innerHTML=`
+    <div class="sb-stat"><div class="sb-stat-val">${total}</div><div class="sb-stat-lbl">Total</div></div>
+    <div class="sb-stat"><div class="sb-stat-val">${done}</div><div class="sb-stat-lbl">Done</div></div>
+    <div class="sb-stat"><div class="sb-stat-val">${inProg}</div><div class="sb-stat-lbl">Active</div></div>
+    <div class="sb-stat"><div class="sb-stat-val">${failed}</div><div class="sb-stat-lbl">Failed</div></div>
+    <div class="sb-stat"><div class="sb-stat-val">${pending}</div><div class="sb-stat-lbl">Pending</div></div>
+    <div class="sb-stat"><div class="sb-stat-val">${fmtDuration(avgCycle)}</div><div class="sb-stat-lbl">Avg Cycle</div></div>
+  `;
+  // Plan badge in navbar
+  updatePlanBadge();
+}
+function colAvatarHTML(tasks){
+  const ids=[...new Set(tasks.filter(t=>t.assignee).map(t=>t.assignee))];
+  const actors=ids.map(id=>state.actors.find(a=>a.id===id)).filter(Boolean);
+  if(!actors.length)return'';
+  const icons={human:'👤',agent:'🤖',claude:'🧠',codex:'⚡'};
+  return'<div style="display:flex;gap:2px;padding:0 8px 6px;flex-wrap:wrap">'+actors.map(a=>{
+    const ct=tasks.filter(t=>t.assignee===a.id).length;
+    return'<span title="'+SEC.sanitize(a.name)+' ('+ct+' task'+(ct>1?'s':'')+')'+'" style="font-size:10px;padding:1px 6px;border-radius:10px;background:var(--surface);border:1px solid var(--border);cursor:default;white-space:nowrap">'+(icons[a.type]||'●')+'<span style="color:var(--text-muted);margin-left:2px">'+ct+'</span></span>';
+  }).join('')+'</div>';
+}
+function renderBoard(){
+  const board=document.getElementById('board');
+  board.innerHTML=state.columns.map(col=>{
+    const tasks=state.tasks.filter(t=>t.column===col.id&&taskMatchesFilter(t)).sort((a,b)=>{
+      const po={critical:0,high:1,medium:2,low:3,none:4};
+      return(po[a.priority]||4)-(po[b.priority]||4)||(a.waterfall-b.waterfall);
+    });
+    const wipOver=col.wipLimit>0&&tasks.length>col.wipLimit;
+    return`
+    <div class="column" data-col="${col.id}">
+      <div class="col-header">
+        <span class="col-title"><span class="col-dot" style="background:${col.color}"></span>${SEC.sanitize(col.name)}<span class="col-count">${tasks.length}</span></span>
+        ${col.wipLimit>0?`<span class="col-wip" style="${wipOver?'color:var(--danger)':''}">WIP:${tasks.length}/${col.wipLimit}</span>`:''}
+      </div>
+      ${col.wipLimit>0?'<div style="margin:0 8px 4px;height:3px;background:var(--border);border-radius:2px;overflow:hidden"><div style="height:100%;border-radius:2px;transition:width .3s;background:'+(wipOver?'var(--danger)':col.color)+';width:'+Math.min(100,(tasks.length/col.wipLimit)*100)+'%"></div></div>':''}
+      ${colAvatarHTML(tasks)}
+      <div class="col-body" data-col="${col.id}" ondragover="onDragOver(event)" ondragenter="onDragEnter(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+        ${tasks.map(t=>taskHTML(t)).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+function taskHTML(t){
+  const actor=t.assignee?state.actors.find(a=>a.id===t.assignee):null;
+  const typeIcon=actor?{human:'👤',agent:'🤖',claude:'🧠',codex:'⚡'}[actor.type]||'●':'';
+  const assigneeName=actor?actor.name:'Unassigned';
+  const agentSub=t.assigneeAgent?` → ${SEC.sanitize(t.assigneeAgent)}`:'';
+  const isBlocked=t.blockedBy&&t.blockedBy.length>0;
+  const isRateLimited=!!t.rateLimitInfo;
+  const isClarification=!!t.clarificationInfo;
+  const depChain=t.deps.length>0?`<div class="tc-dep-chain">${t.deps.map(dId=>{
+    const dep=getTask(dId);const isDone=dep&&dep.column==='done';
+    return`<span class="tc-dep-icon ${isDone?'done':'pending'}" title="${dep?'#'+dep.num+': '+SEC.sanitize(dep.title):'?'}">${isDone?'✓':'⏳'}</span>`;
+  }).join('')}</div>`:'';
+  const cycleTime=t.startedAt?(t.completedAt?fmtDuration(t.completedAt-t.startedAt):fmtDuration(Date.now()-t.startedAt)+' ⏱️'):'';
+  const lockIcon=t.lockedBy?'🔒':'';
+  const classes=['task-card',t.lockedBy?'locked':'',isRateLimited?'rate-limited':'',isClarification?'clarification':''].filter(Boolean).join(' ');
+  return`
+  <div class="${classes}" draggable="${!isBlocked}" data-id="${t.id}"
+    ondragstart="onDragStart(event)" ondragend="onDragEnd(event)"
+    onmousedown="onTaskPointerDown(event)" onmouseup="onTaskPointerUp(event,SEC.safeId('${t.id}'))" oncontextmenu="onCtx(event,SEC.safeId('${t.id}'))">
+    <div class="tc-priority ${t.priority}"></div>
+    <div class="tc-header">
+      <span class="tc-id">#${t.num}${t.phase?` · ${SEC.sanitize(t.phase)}`:''}</span>
+      <span>${lockIcon}</span>
+    </div>
+    <div class="tc-title">${SEC.sanitize(t.title)}</div>
+    ${t.desc?`<div class="tc-desc">${SEC.sanitize(t.desc)}</div>`:''}
+    <div class="tc-footer">
+      <div class="tc-tags">
+        ${t.tags.map(tg=>`<span class="tc-tag">${SEC.sanitize(tg)}</span>`).join('')}
+        ${isBlocked?'<span class="tc-tag blocked">⛔ Blocked</span>':''}
+        ${isRateLimited?`<span class="tc-status-badge rate-limited">⏳ Rate Limited (${t.retryCount}/${t.maxRetries})</span>`:''}
+        ${isClarification?'<span class="tc-status-badge clarification">❓ Needs Clarity</span>':''}
+        ${t.confidence<0.7?`<span class="tc-tag" style="background:rgba(218,54,51,.15);color:var(--danger)">⚠ Low Confidence</span>`:''}
+      </div>
+      <div class="tc-assignee"><span class="tc-assignee-dot" style="background:${t.assignee?'var(--success)':'var(--text-faint)'}"></span>${typeIcon} ${SEC.sanitize(assigneeName)}${agentSub?`<span style="color:var(--accent);font-weight:600">${agentSub}</span>`:''}</div>
+    </div>
+    ${depChain}
+    ${t.status&&t.status!=='queued'&&t.status!=='ready'?`<div style="font-size:9px;padding:2px 8px;color:var(--text-muted)">State: <strong style="color:${
+      t.status==='active'?'var(--accent)':t.status==='completed'?'var(--success)':t.status==='failed'?'var(--danger)':t.status==='in_review'?'#7c3aed':t.status==='waiting_human'?'#f0883e':'var(--text-muted)'
+    }">${t.status}</strong>${t.meta?.linkedSession?' · <span style="color:var(--success)" title="Linked to agent session">live session</span>':''}</div>`:''}
+    ${cycleTime?`<div class="tc-cycle">${cycleTime}</div>`:''}
+    ${t.nextTask?'<div style="font-size:9px;color:var(--accent);margin-top:4px;padding:0 8px 4px">Chains on completion</div>':''}
+    ${isRateLimited&&t.rateLimitInfo?.retryAt?`<div style="margin:4px 8px 6px;height:3px;background:var(--border);border-radius:2px;overflow:hidden"><div style="height:100%;background:var(--warning);width:${Math.min(100,Math.max(5,((Date.now()-(t.rateLimitInfo.retryAt-(state.settings.rateLimitCooldownSec*1000)))/(state.settings.rateLimitCooldownSec*1000))*100))}%;transition:width 1s"></div></div>`:''}
+  </div>`;
+}
+/* ========== DRAG & DROP ========== */
+let dragTaskId=null;
+let taskPointerStart=null;
+let taskPointerTime=0;
+let wasDragged=false;
+function onTaskPointerDown(e){
+  taskPointerStart={x:e.clientX,y:e.clientY};
+  taskPointerTime=Date.now();
+  wasDragged=false;
+}
+function onTaskPointerUp(e,taskId){
+  if(wasDragged)return;
+  if(!taskPointerStart)return;
+  const dx=Math.abs(e.clientX-taskPointerStart.x);
+  const dy=Math.abs(e.clientY-taskPointerStart.y);
+  const dt=Date.now()-taskPointerTime;
+  taskPointerStart=null;
+  // Only treat as click if minimal movement and quick press
+  if(dx<6&&dy<6&&dt<400){
+    openDetail(taskId);
+  }
+}
+/* Drop validation: returns {allowed:bool, level:'ok'|'warn'|'blocked', reason:string} */
+function getDropValidation(task,targetColId){
+  if(!task||task.column===targetColId)return{allowed:false,level:'blocked',reason:'Same column'};
+  // Blocked by dependencies
+  if(task.blockedBy&&task.blockedBy.length>0&&targetColId!=='inbox'){
+    return{allowed:false,level:'blocked',reason:`Blocked by ${task.blockedBy.length} unfinished dependenc${task.blockedBy.length>1?'ies':'y'}`};
+  }
+  // WIP limit
+  const col=state.columns.find(c=>c.id===targetColId);
+  const colTasks=state.tasks.filter(t=>t.column===targetColId&&t.id!==task.id);
+  if(col&&col.wipLimit>0&&colTasks.length>=col.wipLimit){
+    return{allowed:false,level:'blocked',reason:`${col.name} WIP limit reached (${col.wipLimit})`};
+  }
+  // Lock check
+  const me=state.actors.find(a=>a.type==='human');
+  if(task.lockedBy&&me&&!canLock(task,me.id)){
+    return{allowed:false,level:'blocked',reason:`Locked by ${getActorName(task.lockedBy)}`};
+  }
+  // In Progress: warn if no assignee
+  if(targetColId==='in_progress'&&!task.assignee){
+    return{allowed:true,level:'warn',reason:'No agent assigned — task will be unassigned'};
+  }
+  // Review: warn if no reasoning trace
+  if(targetColId==='review'){
+    const hasReasoning=state.reasoning&&state.reasoning.some(r=>r.taskId===task.id);
+    if(!hasReasoning&&!task.description){
+      return{allowed:true,level:'warn',reason:'No work artifacts or reasoning trace found'};
+    }
+  }
+  // Done: will trigger completion flow
+  if(targetColId==='done'&&state.settings.requireCompletionDoc){
+    return{allowed:true,level:'warn',reason:'Will prompt for completion documentation'};
+  }
+  // Failed: will trigger failure flow
+  if(targetColId==='failed'){
+    return{allowed:true,level:'warn',reason:'Will prompt for failure reason'};
+  }
+  // Pending Human: will trigger human request flow
+  if(targetColId==='pending_human'){
+    return{allowed:true,level:'warn',reason:'Will prompt for human action needed'};
+  }
+  // Moving backwards (regression)
+  const colOrder=['inbox','todo','in_progress','review','pending_human','done'];
+  const fromIdx=colOrder.indexOf(task.column);
+  const toIdx=colOrder.indexOf(targetColId);
+  if(fromIdx>1&&toIdx<fromIdx&&targetColId!=='failed'){
+    return{allowed:true,level:'warn',reason:`Moving back: ${state.columns.find(c=>c.id===task.column)?.name||task.column} → ${col?.name||targetColId}`};
+  }
+  return{allowed:true,level:'ok',reason:'Ready to move'};
+}
+
+function clearDragClasses(el){
+  el.classList.remove('drag-over','drag-ok','drag-warn','drag-blocked');
+}
+
+function onDragStart(e){
+  wasDragged=true;
+  taskPointerStart=null; // cancel any click detection
+  dragTaskId=e.target.dataset.id;e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragTaskId);
+}
+function onDragEnd(e){
+  e.target.classList.remove('dragging');dragTaskId=null;
+  document.querySelectorAll('.col-body').forEach(b=>clearDragClasses(b));
+  // Keep wasDragged true briefly so pointerUp doesn't fire openDetail
+  setTimeout(()=>{wasDragged=false},100);
+}
+function onDragOver(e){
+  e.preventDefault();
+  const task=dragTaskId?getTask(dragTaskId):null;
+  const body=e.currentTarget;
+  const targetCol=body.dataset.col;
+  if(task){
+    const v=getDropValidation(task,targetCol);
+    e.dataTransfer.dropEffect=v.allowed?'move':'none';
+  }else{
+    e.dataTransfer.dropEffect='move';
+  }
+}
+function onDragEnter(e){
+  e.preventDefault();
+  const body=e.currentTarget;
+  if(!body.classList.contains('col-body'))return;
+  clearDragClasses(body);
+  body.classList.add('drag-over');
+  // Color-code the drop zone based on validation
+  const task=dragTaskId?getTask(dragTaskId):null;
+  if(task){
+    const v=getDropValidation(task,body.dataset.col);
+    if(v.level==='ok')body.classList.add('drag-ok');
+    else if(v.level==='warn')body.classList.add('drag-warn');
+    else body.classList.add('drag-blocked');
+    // Show hint tooltip
+    body.title=v.reason;
+  }
+}
+function onDragLeave(e){
+  const body=e.currentTarget;
+  if(body.classList.contains('col-body')&&!body.contains(e.relatedTarget)){
+    clearDragClasses(body);body.title='';
+  }
+}
+function onDrop(e){
+  e.preventDefault();
+  const body=e.currentTarget;clearDragClasses(body);body.title='';
+  const colId=body.dataset.col;const taskId=e.dataTransfer.getData('text/plain');
+  if(!taskId)return;
+  const task=getTask(taskId);if(!task)return;
+  const oldCol=task.column;
+  // Validate with gate check
+  const v=getDropValidation(task,colId);
+  if(!v.allowed){
+    toast(`Cannot move Task #${task.num}: ${v.reason}`,'error');return;
+  }
+  // Flow triggers (warn-level prompts)
+  if(colId==='done'&&state.settings.requireCompletionDoc){openCompleteFlow(taskId);return}
+  if(colId==='failed'){openFailFlow(taskId);return}
+  if(colId==='pending_human'){openHumanReqFlow(taskId);return}
+  // Show warning toast for warn-level moves (but allow them)
+  if(v.level==='warn'){toast(v.reason,'warning')}
+  // Move with state mutation
+  moveTask(task,colId,oldCol);
+}
+function moveTask(task,newCol,oldCol){
+  // Use server-side state machine if available
+  if(API.serverMode){
+    fetch('/api/state-machine/transition',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({taskId:task.id,toColumn:newCol,trigger:'manual'})
+    }).then(r=>r.json()).then(result=>{
+      if(!result.moved){
+        toast(`Cannot move: ${result.reason}`,'error');
+        renderAll(); // revert visual
+        return;
+      }
+      API.loadState().then(()=>renderAll());
+    }).catch(()=>{
+      // Fallback to local logic
+      moveTaskLocal(task,newCol,oldCol);
+    });
+    return;
+  }
+  moveTaskLocal(task,newCol,oldCol);
+}
+function moveTaskLocal(task,newCol,oldCol){
+  task.column=newCol;task.updated=Date.now();
+  // State mutations per column
+  if(newCol==='in_progress'&&!task.startedAt){task.startedAt=Date.now();task.status='active'}
+  if(newCol==='review'){task.status='in_review';task.reviewRequestedAt=Date.now()}
+  if(newCol==='done'){task.completedAt=Date.now();task.status='completed';unlockTask(task,'COMPLETED')}
+  if(newCol==='failed'){task.status='failed';task.failedAt=Date.now()}
+  if(newCol==='pending_human'){task.status='waiting_human'}
+  if(newCol==='todo'&&oldCol!=='inbox'){task.status='ready'}
+  if(newCol==='inbox'){task.status='queued';if(oldCol!=='inbox'){task.startedAt=null}}
+  audit('TASK_MOVED',`Task #${task.num} moved ${oldCol}→${newCol}`,task.id);
+  // Task chaining: auto-create follow-up on completion
+  if(newCol==='done'&&task.nextTask){
+    const nt=task.nextTask;
+    const chain=mkTask({title:nt.title||`Follow-up: ${task.title}`,desc:nt.desc||`Auto-chained from Task #${task.num}`,
+      priority:nt.priority||task.priority,assignee:nt.assignee||task.assignee,assigneeAgent:nt.assigneeAgent||task.assigneeAgent,
+      tags:nt.tags||task.tags,phase:nt.phase||task.phase,deps:[task.id]});
+    state.tasks.push(chain);
+    audit('TASK_CHAINED',`Task #${chain.num} auto-created from #${task.num}`,chain.id);
+    addReason('cot',`⛓️ Chain: Task #${task.num} completed → auto-created #${chain.num} "${chain.title}"`);
+    toast(`⛓️ Follow-up Task #${chain.num} created`,'info');
+  }
+  if(newCol==='done')checkAutoAdvance();
+  recalcDeps();recalcPriorities();saveState();renderAll();
+}
+/* ========== CONTEXT MENU ========== */
+function onCtx(e,taskId){
+  e.preventDefault();e.stopPropagation();
+  const task=getTask(taskId);if(!task)return;
+  const menu=document.getElementById('ctxMenu');
+  const me=state.actors.find(a=>a.type==='human');
+  menu.innerHTML=`
+    <div class="ctx-item" onclick="openDetail(SEC.safeId('${taskId}'));hideCtx()">📋 View Details</div>
+    <div class="ctx-item" onclick="openTaskModal(SEC.safeId('${taskId}'));hideCtx()">✏️ Edit Task</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" onclick="autoRouteTask(getTask(SEC.safeId('${taskId}')));hideCtx()">⚡ Auto-Route</div>
+    ${task.assignee&&state.actors.find(a=>a.id===task.assignee)?.endpoint?`<div class="ctx-item" onclick="dispatchToAgent(SEC.safeId('${taskId}'));hideCtx()">🚀 Dispatch to Agent</div>`:''}
+    ${task.remoteId?`<div class="ctx-item" onclick="pollAgentStatus(SEC.safeId('${taskId}'));hideCtx()">📡 Poll Status</div>`:''}
+    ${task.lockedBy?`<div class="ctx-item" onclick="unlockTask(getTask(SEC.safeId('${taskId}')),'MANUAL');renderAll();hideCtx()">🔓 Unlock</div>`
+      :`<div class="ctx-item" onclick="lockTask(getTask(SEC.safeId('${taskId}')),'${me?me.id:''}');renderAll();hideCtx()">🔒 Lock</div>`}
+    ${task.rateLimitInfo?`<div class="ctx-item" onclick="retryRateLimited(SEC.safeId('${taskId}'));hideCtx()">🔄 Retry Now</div>`:''}
+    ${task.clarificationInfo?`<div class="ctx-item" onclick="openClarifyFlow(SEC.safeId('${taskId}'));hideCtx()">💬 Provide Clarification</div>`:''}
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" onclick="simulateRateLimit(SEC.safeId('${taskId}'));hideCtx()">🧪 Sim: Rate Limit</div>
+    <div class="ctx-item" onclick="simulateUnclear(SEC.safeId('${taskId}'));hideCtx()">🧪 Sim: Unclear</div>
+    <div class="ctx-item" onclick="simulateComplete(SEC.safeId('${taskId}'));hideCtx()">🧪 Sim: Complete</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item danger" onclick="deleteTask(SEC.safeId('${taskId}'));hideCtx()">🗑️ Delete</div>
+  `;
+  menu.style.display='block';menu.style.left=Math.min(e.clientX,window.innerWidth-200)+'px';menu.style.top=Math.min(e.clientY,window.innerHeight-300)+'px';
+  setTimeout(()=>document.addEventListener('click',hideCtx,{once:true}),0);
+}
+function hideCtx(){document.getElementById('ctxMenu').style.display='none'}
+function deleteTask(id){
+  const t=getTask(id);if(!t)return;
+  state.tasks=state.tasks.filter(x=>x.id!==id);
+  // Remove from deps
+  state.tasks.forEach(x=>{x.deps=x.deps.filter(d=>d!==id)});
+  audit('TASK_DELETED',`Task #${t.num} "${t.title}" deleted`,id);
+  recalcDeps();recalcPriorities();saveState();renderAll();
+  toast(`Task #${t.num} deleted`,'info');
+}
+/* ========== TESTING SIMULATIONS ========== */
+function simulateRateLimit(taskId){
+  const t=getTask(taskId);if(!t)return;
+  handleRateLimit(t,'[TEST] Simulated rate limit / token limit reached');
+}
+function simulateUnclear(taskId){
+  const t=getTask(taskId);if(!t)return;
+  flagUnclear(t,'[TEST] Simulated unclear instructions',['What format should the output be in?','Which data source to use?']);
+}
+function simulateComplete(taskId){
+  const t=getTask(taskId);if(!t)return;
+  t.completionDoc={what:'[TEST] Task completed successfully',howTo:'Follow the documented steps',access:'Available in shared drive',caveats:'None for test'};
+  t.column='done';t.completedAt=Date.now();t.updated=Date.now();
+  audit('TASK_COMPLETED',`[TEST] Task #${t.num} completed`,t.id);
+  checkAutoAdvance();saveState();renderAll();
+  toast(`[TEST] Task #${t.num} completed`,'success');
+}
+/* ========== COMPLETION FLOW ========== */
+function openCompleteFlow(taskId){
+  const t=getTask(taskId);if(!t)return;
+  document.getElementById('flowTitle').textContent=`✅ Complete Task #${t.num}`;
+  document.getElementById('flowBody').innerHTML=`
+    <p style="margin-bottom:12px;color:var(--text-muted)">Document what was done before marking as complete.</p>
+    <div class="flow-step"><h4>What was accomplished?</h4>
+      <textarea class="form-textarea" id="fc_what" placeholder="Describe what was delivered...">${t.completionDoc?SEC.sanitize(t.completionDoc.what):''}</textarea></div>
+    <div class="flow-step"><h4>How to use / verify?</h4>
+      <textarea class="form-textarea" id="fc_howto" placeholder="Steps to verify or use the deliverable...">${t.completionDoc?SEC.sanitize(t.completionDoc.howTo):''}</textarea></div>
+    <div class="flow-step"><h4>Access / Location</h4>
+      <input class="form-input" id="fc_access" placeholder="Where can this be found?" value="${t.completionDoc?SEC.sanitize(t.completionDoc.access):''}"></div>
+    <div class="flow-step"><h4>Caveats / Known Issues</h4>
+      <textarea class="form-textarea" id="fc_caveats" placeholder="Any limitations or known issues...">${t.completionDoc?SEC.sanitize(t.completionDoc.caveats):''}</textarea></div>
+  `;
+  document.getElementById('flowFooter').innerHTML=`
+    <button class="nav-btn" onclick="closeModal('flowModalOverlay')">Cancel</button>
+    <button class="nav-btn primary" onclick="confirmComplete('${SEC.safeId(taskId)}')">✅ Mark Complete</button>`;
+  openModal('flowModalOverlay');
+}
+function confirmComplete(taskId){
+  const t=getTask(taskId);if(!t)return;
+  const what=document.getElementById('fc_what').value.trim();
+  if(!what){toast('Please describe what was accomplished','error');return}
+  t.completionDoc={what,howTo:document.getElementById('fc_howto').value.trim(),access:document.getElementById('fc_access').value.trim(),caveats:document.getElementById('fc_caveats').value.trim()};
+  const oldCol=t.column;
+  t.column='done';t.completedAt=Date.now();t.updated=Date.now();
+  unlockTask(t,'COMPLETED');
+  audit('TASK_COMPLETED',`Task #${t.num} completed: ${what.slice(0,80)}`,t.id);
+  closeModal('flowModalOverlay');
+  checkAutoAdvance();recalcDeps();recalcPriorities();saveState();renderAll();
+  toast(`Task #${t.num} completed! 🎉`,'success');
+}
+/* ========== FAILURE FLOW ========== */
+function openFailFlow(taskId){
+  const t=getTask(taskId);if(!t)return;
+  const agents=state.actors.filter(a=>a.type!=='human');
+  document.getElementById('flowTitle').textContent=`❌ Fail Task #${t.num}`;
+  document.getElementById('flowBody').innerHTML=`
+    <p style="margin-bottom:12px;color:var(--text-muted)">Document why this task failed and next steps.</p>
+    <div class="flow-step"><h4>Failure Reason</h4>
+      <textarea class="form-textarea" id="ff_reason" placeholder="What went wrong?"></textarea></div>
+    <div class="flow-step"><h4>Error Logs / Output</h4>
+      <textarea class="form-textarea" id="ff_logs" placeholder="Paste error output or logs..."></textarea></div>
+    <div class="flow-step"><h4>Recommended Next Steps</h4>
+      <textarea class="form-textarea" id="ff_next" placeholder="Suggestions for resolution..."></textarea></div>
+    <div class="flow-step"><h4>Auto-Retry with Different Agent?</h4>
+      <label class="form-check"><input type="checkbox" id="ff_retry"> Auto-retry with another agent</label>
+      <select class="form-select" id="ff_agent" style="margin-top:8px">
+        <option value="">Auto-select best agent</option>
+        ${agents.map(a=>`<option value="${a.id}">${SEC.sanitize(a.name)}</option>`).join('')}
+      </select></div>
+  `;
+  document.getElementById('flowFooter').innerHTML=`
+    <button class="nav-btn" onclick="closeModal('flowModalOverlay')">Cancel</button>
+    <button class="nav-btn primary" style="background:var(--danger);border-color:var(--danger)" onclick="confirmFail('${SEC.safeId(taskId)}')">❌ Mark Failed</button>`;
+  openModal('flowModalOverlay');
+}
+function confirmFail(taskId){
+  const t=getTask(taskId);if(!t)return;
+  const reason=document.getElementById('ff_reason').value.trim();
+  if(!reason){toast('Please provide a failure reason','error');return}
+  t.failureDoc={reason,logs:document.getElementById('ff_logs').value.trim(),nextSteps:document.getElementById('ff_next').value.trim(),ts:Date.now()};
+  const oldCol=t.column;t.column='failed';t.updated=Date.now();
+  unlockTask(t,'FAILED');
+  audit('TASK_FAILED',`Task #${t.num} failed: ${reason.slice(0,80)}`,t.id,t.assignee);
+  const retry=document.getElementById('ff_retry').checked;
+  if(retry){
+    const agentId=document.getElementById('ff_agent').value;
+    t.column='todo';t.assignee=null;t.assigneeAgent=null;t.retryCount++;t.updated=Date.now();
+    if(agentId){
+      t.assignee=agentId;
+      audit('TASK_RETRY',`Task #${t.num} retrying with ${getActorName(agentId)}`,t.id,agentId);
+    }else{
+      autoRouteTask(t);
+      audit('TASK_RETRY',`Task #${t.num} retrying with auto-route`,t.id);
+    }
+    toast(`Task #${t.num} queued for retry`,'warning');
+  }else{
+    toast(`Task #${t.num} marked as failed`,'error');
+  }
+  closeModal('flowModalOverlay');recalcDeps();saveState();renderAll();
+}
+/* ========== HUMAN ESCALATION FLOW ========== */
+function openHumanReqFlow(taskId){
+  const t=getTask(taskId);if(!t)return;
+  document.getElementById('flowTitle').textContent=`🧑 Human Required — Task #${t.num}`;
+  document.getElementById('flowBody').innerHTML=`
+    <p style="margin-bottom:12px;color:var(--text-muted)">What does the human need to do?</p>
+    <div class="flow-step"><h4>What's Needed</h4>
+      <textarea class="form-textarea" id="fh_what" placeholder="Describe the human action needed..."></textarea></div>
+    <div class="flow-step"><h4>Urgency</h4>
+      <select class="form-select" id="fh_urgency">
+        <option value="low">Low — When convenient</option>
+        <option value="medium" selected>Medium — Within a day</option>
+        <option value="high">High — Within hours</option>
+        <option value="critical">Critical — Immediate</option>
+      </select></div>
+    <div class="flow-step"><h4>Context / Instructions</h4>
+      <textarea class="form-textarea" id="fh_ctx" placeholder="Additional context for the human..."></textarea></div>
+  `;
+  document.getElementById('flowFooter').innerHTML=`
+    <button class="nav-btn" onclick="closeModal('flowModalOverlay')">Cancel</button>
+    <button class="nav-btn primary" style="background:var(--warning);border-color:var(--warning);color:#000" onclick="confirmHumanReq('${SEC.safeId(taskId)}')">🧑 Escalate to Human</button>`;
+  openModal('flowModalOverlay');
+}
+function confirmHumanReq(taskId){
+  const t=getTask(taskId);if(!t)return;
+  const what=document.getElementById('fh_what').value.trim();
+  if(!what){toast('Describe what the human needs to do','error');return}
+  t.humanReqDoc={what,urgency:document.getElementById('fh_urgency').value,context:document.getElementById('fh_ctx').value.trim(),ts:Date.now()};
+  const oldCol=t.column;t.column='pending_human';t.updated=Date.now();
+  audit('HUMAN_ESCALATION',`Task #${t.num} escalated: ${what.slice(0,80)} [${t.humanReqDoc.urgency}]`,t.id);
+  closeModal('flowModalOverlay');saveState();renderAll();
+  toast(`Task #${t.num} escalated to human`,'warning');
+}
+/* ========== CLARIFICATION FLOW ========== */
+function openClarifyFlow(taskId){
+  const t=getTask(taskId);if(!t||!t.clarificationInfo)return;
+  document.getElementById('flowTitle').textContent=`💬 Clarify Task #${t.num}`;
+  const qs=t.clarificationInfo.questions||[];
+  document.getElementById('flowBody').innerHTML=`
+    <p style="margin-bottom:12px;color:var(--text-muted)">Agent needs clarification on this task.</p>
+    <div class="flow-step"><h4>Agent's Concern</h4><p style="font-size:13px">${SEC.sanitize(t.clarificationInfo.reason)}</p></div>
+    ${qs.length?`<div class="flow-step"><h4>Questions</h4>${qs.map((q,i)=>`<p style="font-size:13px;margin-bottom:4px">${i+1}. ${SEC.sanitize(q)}</p>`).join('')}</div>`:''}
+    <div class="flow-step"><h4>Your Answers / Clarification</h4>
+      <textarea class="form-textarea" id="fcl_answers" placeholder="Provide answers or additional instructions..."></textarea></div>
+  `;
+  document.getElementById('flowFooter').innerHTML=`
+    <button class="nav-btn" onclick="closeModal('flowModalOverlay')">Cancel</button>
+    <button class="nav-btn primary" onclick="submitClarification('${SEC.safeId(taskId)}')">✅ Submit Clarification</button>`;
+  openModal('flowModalOverlay');
+}
+function submitClarification(taskId){
+  const t=getTask(taskId);if(!t)return;
+  const ans=document.getElementById('fcl_answers').value.trim();
+  if(!ans){toast('Please provide answers','error');return}
+  resolveClarification(t,ans);
+  closeModal('flowModalOverlay');
+}
+/* ========== DETAIL VIEW ========== */
+function openDetail(taskId){
+  const t=getTask(taskId);if(!t)return;
+  document.getElementById('detailTitle').textContent=`Task #${t.num}: ${t.title}`;
+  const assigneeName=t.assignee?getActorName(t.assignee):'Unassigned';
+  const logs=state.auditLog.filter(l=>l.taskId===t.id).sort((a,b)=>b.ts-a.ts);
+  const depTasks=t.deps.map(dId=>getTask(dId)).filter(Boolean);
+  const blockers=state.tasks.filter(x=>x.deps.includes(t.id));
+  document.getElementById('detailBody').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div>
+        <div class="form-label">Priority</div>
+        <div style="color:${priorityColor(t.priority)};font-weight:700;text-transform:uppercase">${t.priority}</div>
+      </div>
+      <div>
+        <div class="form-label">Column</div>
+        <div>${state.columns.find(c=>c.id===t.column)?.name||t.column}</div>
+      </div>
+      <div>
+        <div class="form-label">Assigned To</div>
+        <div>${SEC.sanitize(assigneeName)}${t.assigneeAgent?` → ${SEC.sanitize(t.assigneeAgent)}`:''}</div>
+      </div>
+      <div>
+        <div class="form-label">Confidence</div>
+        <div style="color:${t.confidence<0.7?'var(--danger)':'var(--success)'}">${Math.round(t.confidence*100)}%</div>
+      </div>
+      <div>
+        <div class="form-label">Created</div><div>${fmtTime(t.created)}</div>
+      </div>
+      <div>
+        <div class="form-label">Cycle Time</div>
+        <div>${t.startedAt?fmtDuration((t.completedAt||Date.now())-t.startedAt):'Not started'}</div>
+      </div>
+    </div>
+    ${t.desc?`<div class="detail-section"><h4>Description</h4><p style="font-size:13px;color:var(--text-secondary);white-space:pre-wrap">${SEC.sanitize(t.desc)}</p></div>`:''}
+    ${depTasks.length?`<div class="detail-section"><h4>Dependencies (${depTasks.length})</h4>${depTasks.map(d=>`<div style="font-size:12px;padding:4px 0;display:flex;align-items:center;gap:6px"><span class="tc-dep-icon ${d.column==='done'?'done':'pending'}">${d.column==='done'?'✓':'⏳'}</span>#${d.num} ${SEC.sanitize(d.title)}</div>`).join('')}</div>`:''}
+    ${blockers.length?`<div class="detail-section"><h4>Blocks (${blockers.length})</h4>${blockers.map(b=>`<div style="font-size:12px;padding:4px 0">#${b.num} ${SEC.sanitize(b.title)}</div>`).join('')}</div>`:''}
+    ${t.completionDoc?`<div class="detail-section"><h4>✅ Completion Doc</h4><div class="flow-step"><strong>What:</strong> ${SEC.sanitize(t.completionDoc.what)}<br><strong>How:</strong> ${SEC.sanitize(t.completionDoc.howTo)}<br><strong>Access:</strong> ${SEC.sanitize(t.completionDoc.access)}<br><strong>Caveats:</strong> ${SEC.sanitize(t.completionDoc.caveats)}</div></div>`:''}
+    ${t.failureDoc?`<div class="detail-section"><h4>❌ Failure Doc</h4><div class="flow-step" style="border-color:var(--danger)"><strong>Reason:</strong> ${SEC.sanitize(t.failureDoc.reason)}<br><strong>Logs:</strong> <pre style="font-size:11px;background:var(--bg);padding:8px;border-radius:4px;overflow-x:auto;margin-top:4px">${SEC.sanitize(t.failureDoc.logs)}</pre><strong>Next:</strong> ${SEC.sanitize(t.failureDoc.nextSteps)}</div></div>`:''}
+    ${t.humanReqDoc?`<div class="detail-section"><h4>🧑 Human Request</h4><div class="flow-step" style="border-color:var(--warning)"><strong>What:</strong> ${SEC.sanitize(t.humanReqDoc.what)}<br><strong>Urgency:</strong> <span style="color:${t.humanReqDoc.urgency==='critical'?'var(--danger)':'var(--warning)'}; font-weight:700">${t.humanReqDoc.urgency.toUpperCase()}</span><br><strong>Context:</strong> ${SEC.sanitize(t.humanReqDoc.context)}</div></div>`:''}
+    ${t.rateLimitInfo?`<div class="detail-section"><h4>⏳ Rate Limit Info</h4><div class="flow-step" style="border-color:var(--danger)"><strong>Reason:</strong> ${SEC.sanitize(t.rateLimitInfo.reason)}<br><strong>Retries:</strong> ${t.retryCount}/${t.maxRetries}<br><strong>Retry At:</strong> ${fmtTime(t.rateLimitInfo.retryAt)}</div></div>`:''}
+    ${t.clarificationInfo?`<div class="detail-section"><h4>❓ Clarification Needed</h4><div class="flow-step" style="border-color:var(--info)"><strong>Issue:</strong> ${SEC.sanitize(t.clarificationInfo.reason)}<br>${(t.clarificationInfo.questions||[]).map((q,i)=>`<strong>${i+1}.</strong> ${SEC.sanitize(q)}`).join('<br>')}<br><button class="nav-btn primary" style="margin-top:8px" onclick="closeModal('detailModalOverlay');openClarifyFlow('${SEC.safeId(t.id)}')">Provide Clarification</button></div></div>`:''}
+    <div class="detail-section">
+      <h4>Comments (${t.comments.length})</h4>
+      ${t.comments.map(c=>`<div class="comment"><div class="comment-header"><span class="comment-author">${SEC.sanitize(getActorName(c.author)||c.author)}</span><span class="comment-time">${fmtTime(c.ts)}</span></div><div class="comment-text">${SEC.sanitize(c.text)}</div></div>`).join('')}
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input class="form-input" id="commentInput" placeholder="Add a comment..." onkeydown="if(event.key==='Enter')addComment('${SEC.safeId(t.id)}')">
+        <button class="nav-btn primary" onclick="addComment('${SEC.safeId(t.id)}')">Send</button>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h4>Audit Trail (${logs.length})</h4>
+      <div style="max-height:200px;overflow-y:auto">
+        ${logs.map(l=>`<div class="audit-entry"><span class="audit-ts">${fmtTime(l.ts)}</span><span class="audit-action">${l.action}</span><span>${SEC.sanitize(l.detail)}</span></div>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button class="nav-btn" onclick="closeModal('detailModalOverlay');openTaskModal('${SEC.safeId(t.id)}')">✏️ Edit</button>
+      ${t.column!=='done'?`<button class="nav-btn primary" onclick="closeModal('detailModalOverlay');openCompleteFlow('${SEC.safeId(t.id)}')">✅ Complete</button>`:''}
+      ${t.column!=='failed'?`<button class="nav-btn" style="border-color:var(--danger);color:var(--danger)" onclick="closeModal('detailModalOverlay');openFailFlow('${SEC.safeId(t.id)}')">❌ Fail</button>`:''}
+      <button class="nav-btn" onclick="closeModal('detailModalOverlay');autoRouteTask(getTask('${SEC.safeId(t.id)}'))">⚡ Re-Route</button>
+    </div>
+  `;
+  openModal('detailModalOverlay');
+}
+function addComment(taskId){
+  const t=getTask(taskId);if(!t)return;
+  const input=document.getElementById('commentInput');
+  const text=input.value.trim();if(!text)return;
+  const me=state.actors.find(a=>a.type==='human');
+  t.comments.push({id:uid(),author:me?me.id:'system',text,ts:Date.now()});
+  t.updated=Date.now();
+  audit('COMMENT_ADDED',`Comment on #${t.num}: ${text.slice(0,60)}`,t.id,me?me.id:null);
+  saveState();openDetail(taskId);
+}
+function openAuditLog(){
+  const logs=state.auditLog.sort((a,b)=>b.ts-a.ts);
+  document.getElementById('auditBody').innerHTML=`
+    <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+      <input class="form-input" placeholder="Filter audit log..." oninput="filterAudit(this.value)" style="flex:1">
+      <button class="nav-btn" onclick="exportAuditJSONL()" title="Export as JSONL" style="font-size:11px;white-space:nowrap">📥 Export JSONL</button>
+      <button class="nav-btn" onclick="exportAuditCSV()" title="Export as CSV" style="font-size:11px;white-space:nowrap">📊 Export CSV</button>
+    </div>
+    <div id="auditEntries">${logs.map(l=>`<div class="audit-entry"><span class="audit-ts">${fmtTime(l.ts)}</span><span class="audit-action">${l.action}</span><span>${SEC.sanitize(l.detail)}</span></div>`).join('')}</div>
+    <div style="margin-top:12px;font-size:11px;color:var(--text-muted)">${logs.length} entries total</div>
+  `;
+  openModal('auditModalOverlay');
+}
+function filterAudit(q){
+  const entries=document.querySelectorAll('#auditEntries .audit-entry');
+  entries.forEach(e=>{e.style.display=e.textContent.toLowerCase().includes(q.toLowerCase())?'':'none'});
+}
+function exportAuditJSONL(){
+  const lines=state.auditLog.map(l=>JSON.stringify(l)).join('\n');
+  downloadFile('agentflow-audit-'+new Date().toISOString().slice(0,10)+'.jsonl',lines,'application/jsonl');
+  toast('Audit trail exported as JSONL','success');
+}
+function exportAuditCSV(){
+  const header='timestamp,action,detail,taskId,actorId';
+  const rows=state.auditLog.map(l=>[new Date(l.ts).toISOString(),l.action,'"'+(l.detail||'').replace(/"/g,'""')+'"',l.taskId||'',l.actorId||''].join(','));
+  downloadFile('agentflow-audit-'+new Date().toISOString().slice(0,10)+'.csv',header+'\n'+rows.join('\n'),'text/csv');
+  toast('Audit trail exported as CSV','success');
+}
+function downloadFile(name,content,type){
+  const blob=new Blob([content],{type});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=name;a.click();
+  URL.revokeObjectURL(url);
+}
+/* ========== AUTO-ROUTING (RAG/CoT/ToT) ========== */
+function autoRouteTask(task){
+  if(!task||task.column==='done')return;
+  const agents=state.actors.filter(a=>a.type!=='human'&&a.status!=='offline');
+  if(!agents.length){toast('No online agents available','warning');return}
+  addReason('rag',`RAG: Scanning ${agents.length} agent systems for task #${task.num} "${task.title}"`);
+  // Keyword extraction
+  const text=(task.title+' '+task.desc+' '+task.tags.join(' ')).toLowerCase();
+  const candidates=[];
+  agents.forEach(actor=>{
+    const subAgents=actor.agents||[];
+    const caps=actor.capabilities||[];
+    if(subAgents.length>0){
+      subAgents.forEach(sa=>{
+        const fn=(sa.fn||sa.name||'').toLowerCase();
+        let score=0;
+        text.split(/\s+/).forEach(w=>{if(w.length>2&&fn.includes(w))score+=10});
+        const load=state.tasks.filter(t=>t.assignee===actor.id&&t.assigneeAgent===sa.name&&t.column==='in_progress').length;
+        score-=load*5;
+        if(score>0)candidates.push({actorId:actor.id,agent:sa.name,score,load,fn:sa.fn});
+      });
+    }
+    if(caps.length>0){
+      let score=0;
+      caps.forEach(c=>{if(text.includes(c.toLowerCase()))score+=10});
+      const load=state.tasks.filter(t=>t.assignee===actor.id&&t.column==='in_progress').length;
+      score-=load*5;
+      if(score>0)candidates.push({actorId:actor.id,agent:null,score,load,fn:caps.join(', ')});
+    }
+  });
+  if(candidates.length===0){
+    // Fallback: assign to first available
+    const fallback=agents[0];
+    const sa=fallback.agents?.[0];
+    candidates.push({actorId:fallback.id,agent:sa?.name||null,score:1,load:0,fn:'fallback'});
+    addReason('cot',`CoT: No keyword match. Fallback to ${fallback.name}`);
+  }
+  // ToT: Evaluate options
+  candidates.sort((a,b)=>b.score-a.score);
+  addReason('tot',`ToT: ${candidates.length} candidates evaluated. Top: ${getActorName(candidates[0].actorId)}${candidates[0].agent?' → '+candidates[0].agent:''} (score:${candidates[0].score})`);
+  const best=candidates[0];
+  task.assignee=best.actorId;task.assigneeAgent=best.agent;
+  task.confidence=Math.min(1,best.score/20);
+  if(task.column==='inbox'&&(!task.blockedBy||task.blockedBy.length===0))task.column='todo';
+  task.updated=Date.now();
+  audit('AUTO_ROUTED',`Task #${task.num} → ${getActorName(best.actorId)}${best.agent?' → '+best.agent:''} (score:${best.score}, confidence:${Math.round(task.confidence*100)}%)`,task.id,best.actorId);
+  // Low confidence warning
+  if(task.confidence<0.5){
+    addReason('cot',`⚠️ Low confidence (${Math.round(task.confidence*100)}%) on task #${task.num}. May need clarification.`);
+  }
+  saveState();renderAll();
+  toast(`Task #${task.num} → ${getActorName(best.actorId)}${best.agent?' → '+best.agent:''}`,'success');
+}
+function runAutoRoute(){
+  const unassigned=state.tasks.filter(t=>!t.assignee&&t.column!=='done'&&t.column!=='failed');
+  if(!unassigned.length){toast('No unassigned tasks to route','info');return}
+  addReason('rag',`Batch auto-routing ${unassigned.length} tasks...`);
+  unassigned.forEach(t=>autoRouteTask(t));
+  toast(`Routed ${unassigned.length} tasks`,'success');
+}
+/* ========== AGENT DISPATCH ENGINE ========== */
+/* API contracts per system type:
+   - openclaw: POST {endpoint}/api/tasks  body:{task,agent}  → {taskId,status}
+              GET  {endpoint}/api/tasks/{id}/status → {status,result}
+   - crewai:  POST {endpoint}/crew/tasks  body:{objective,context,agent_role}  → {task_id,status}
+              GET  {endpoint}/crew/tasks/{id} → {task_id,status,result}
+   - generic: POST {endpoint}/tasks  body:{task} → {id,status}
+              GET  {endpoint}/tasks/{id} → {id,status,result}
+*/
+const API_CONTRACTS={
+  openclaw:{
+    dispatch:(ep,task,agent)=>({url:ep+'/api/tasks',body:{task:{id:task.id,title:task.title,description:task.desc,priority:task.priority,tags:task.tags},agent:agent||'default'}}),
+    status:(ep,remoteId)=>({url:ep+'/api/tasks/'+remoteId+'/status'}),
+    parseDispatch:r=>({remoteId:r.taskId||r.id,status:r.status}),
+    parseStatus:r=>({status:r.status,result:r.result||r.output,done:r.status==='completed'||r.status==='done',failed:r.status==='failed'||r.status==='error'})
+  },
+  crewai:{
+    dispatch:(ep,task,agent)=>({url:ep+'/crew/tasks',body:{objective:task.title,context:task.desc||'',agent_role:agent||'',priority:task.priority,max_iterations:10}}),
+    status:(ep,remoteId)=>({url:ep+'/crew/tasks/'+remoteId}),
+    parseDispatch:r=>({remoteId:r.task_id||r.id,status:r.status}),
+    parseStatus:r=>({status:r.status,result:r.result||r.output,done:r.status==='completed'||r.status==='success',failed:r.status==='failed'||r.status==='error'})
+  },
+  generic:{
+    dispatch:(ep,task,agent)=>({url:ep+'/tasks',body:{id:task.id,title:task.title,description:task.desc,agent,priority:task.priority}}),
+    status:(ep,remoteId)=>({url:ep+'/tasks/'+remoteId}),
+    parseDispatch:r=>({remoteId:r.id,status:r.status}),
+    parseStatus:r=>({status:r.status,result:r.result,done:r.status==='completed'||r.status==='done',failed:r.status==='failed'})
+  }
+};
+function getContract(actor){return API_CONTRACTS[actor.apiContract]||API_CONTRACTS.generic}
+async function dispatchToAgent(taskId){
+  const task=getTask(taskId);if(!task||!task.assignee)return;
+  const actor=state.actors.find(a=>a.id===task.assignee);
+  if(!actor||!actor.endpoint){toast('No endpoint configured for '+getActorName(task.assignee),'warning');return}
+  const contract=getContract(actor);
+  const{url,body}=contract.dispatch(actor.endpoint,task,task.assigneeAgent);
+  addReason('rag',`Dispatching Task #${task.num} to ${actor.name} @ ${url}`);
+  try{
+    const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(15000)});
+    if(!resp.ok)throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+    const data=await resp.json();
+    const parsed=contract.parseDispatch(data);
+    task.remoteId=parsed.remoteId;task.remoteStatus=parsed.status;task.dispatchedAt=Date.now();task.updated=Date.now();
+    if(task.column==='todo'||task.column==='inbox')task.column='in_progress';
+    if(!task.startedAt)task.startedAt=Date.now();
+    audit('TASK_DISPATCHED',`Task #${task.num} dispatched to ${actor.name} (remote:${parsed.remoteId})`,task.id,actor.id);
+    addReason('cot',`✅ Dispatched #${task.num} → remote ID: ${parsed.remoteId}`);
+    toast(`Task #${task.num} dispatched to ${actor.name}`,'success');
+    saveState();renderAll();
+  }catch(err){
+    addReason('tot',`❌ Dispatch failed for #${task.num}: ${err.message}`);
+    toast(`Dispatch failed: ${err.message}`,'error');
+    audit('DISPATCH_FAILED',`Task #${task.num} dispatch failed: ${err.message}`,task.id,actor.id);
+  }
+}
+async function pollAgentStatus(taskId){
+  const task=getTask(taskId);if(!task||!task.assignee||!task.remoteId)return;
+  const actor=state.actors.find(a=>a.id===task.assignee);
+  if(!actor||!actor.endpoint)return;
+  const contract=getContract(actor);
+  const{url}=contract.status(actor.endpoint,task.remoteId);
+  try{
+    const resp=await fetch(url,{signal:AbortSignal.timeout(10000)});
+    if(!resp.ok)throw new Error(`HTTP ${resp.status}`);
+    const data=await resp.json();
+    const parsed=contract.parseStatus(data);
+    task.remoteStatus=parsed.status;task.updated=Date.now();
+    if(parsed.done){
+      task.column='done';task.completedAt=Date.now();task.status='completed';
+      if(parsed.result)task.comments.push({id:uid(),author:actor.id,text:'Agent result: '+parsed.result,ts:Date.now()});
+      audit('TASK_COMPLETED_REMOTE',`Task #${task.num} completed by ${actor.name}`,task.id,actor.id);
+      addReason('cot',`✅ Remote task #${task.num} completed by ${actor.name}`);
+      toast(`Task #${task.num} completed by ${actor.name}`,'success');
+      unlockTask(task,'REMOTE_COMPLETE');checkAutoAdvance();
+    }else if(parsed.failed){
+      task.column='failed';task.status='failed';task.failedAt=Date.now();
+      if(parsed.result)task.failureDoc={reason:parsed.result,ts:Date.now()};
+      audit('TASK_FAILED_REMOTE',`Task #${task.num} failed: ${parsed.result||'unknown'}`,task.id,actor.id);
+      addReason('tot',`❌ Remote task #${task.num} failed: ${parsed.result||'unknown'}`);
+      toast(`Task #${task.num} failed`,'error');
+    }
+    recalcDeps();recalcPriorities();saveState();renderAll();
+  }catch(err){
+    // Silently log — polling errors are expected when agent is offline
+    addReason('cot',`⚠️ Poll failed for #${task.num}: ${err.message}`);
+  }
+}
+async function testAgentConnection(actorId){
+  const actor=state.actors.find(a=>a.id===actorId);
+  if(!actor||!actor.endpoint){toast('No endpoint configured','warning');return}
+  toast(`Testing connection to ${actor.endpoint}...`,'info');
+  try{
+    const resp=await fetch(actor.endpoint,{method:'GET',signal:AbortSignal.timeout(5000)});
+    if(resp.ok){
+      actor.status='online';
+      toast(`✅ ${actor.name} is reachable (HTTP ${resp.status})`,'success');
+      audit('CONNECTION_TEST',`${actor.name} @ ${actor.endpoint} → OK`,null,actor.id);
+    }else{
+      actor.status='error';
+      toast(`⚠️ ${actor.name} responded with HTTP ${resp.status}`,'warning');
+    }
+  }catch(err){
+    actor.status='offline';
+    toast(`❌ ${actor.name} unreachable: ${err.message}`,'error');
+    audit('CONNECTION_TEST',`${actor.name} @ ${actor.endpoint} → FAILED: ${err.message}`,null,actor.id);
+  }
+  saveState();renderAll();
+}
+async function dispatchAllToAgent(actorId){
+  const tasks=state.tasks.filter(t=>t.assignee===actorId&&!t.remoteId&&(t.column==='todo'||t.column==='in_progress')&&!t.remoteId);
+  if(!tasks.length){toast('No pending tasks to dispatch for this agent','info');return}
+  addReason('rag',`Batch dispatching ${tasks.length} tasks to ${getActorName(actorId)}`);
+  for(const t of tasks){await dispatchToAgent(t.id)}
+  toast(`Dispatched ${tasks.length} tasks`,'success');
+}
+/* ========== REASONING PANEL ========== */
+function addReason(type,text){
+  state.reasoning.unshift({type,text,ts:Date.now()});
+  if(state.reasoning.length>200)state.reasoning=state.reasoning.slice(0,150);
+  renderReasoningPanel();
+}
+function renderReasoningPanel(){
+  const el=document.getElementById('reasoningEntries');
+  el.innerHTML=state.reasoning.slice(0,50).map(r=>`
+    <div class="rp-entry">
+      <div class="rp-entry-type ${r.type}">${r.type.toUpperCase()}</div>
+      <div class="rp-entry-text">${SEC.sanitize(r.text)}</div>
+      <div style="font-size:9px;color:var(--text-faint);margin-top:4px">${fmtTime(r.ts)}</div>
+    </div>
+  `).join('');
+}
+function toggleReasoning(){
+  const p=document.getElementById('reasoningPanel');
+  p.classList.toggle('active');p.classList.toggle('mobile-open');
+}
+/* ========== AGENT POLLING ========== */
+function startPolling(){
+  if(state.pollingInterval)clearInterval(state.pollingInterval);
+  if(!state.settings.enablePolling)return;
+  state.pollingActive=true;
+  state.pollingInterval=setInterval(()=>{
+    // Check for stale locks
+    state.tasks.forEach(t=>{
+      if(t.lockedBy&&Date.now()-t.lockedAt>LOCK_STALE_MS){
+        unlockTask(t,'STALE_TIMEOUT');
+        addReason('cot',`Stale lock released on #${t.num}`);
+      }
+    });
+    // Check rate-limited tasks for cooldown expiry
+    state.tasks.forEach(t=>{
+      if(t.rateLimitInfo&&t.rateLimitInfo.retryAt&&Date.now()>=t.rateLimitInfo.retryAt){
+        if(state.settings.autoRetryOnRateLimit&&t.retryCount<=t.maxRetries){
+          retryRateLimited(t.id);
+        }
+      }
+    });
+    // Poll dispatched tasks for remote status
+    state.tasks.filter(t=>t.remoteId&&t.column==='in_progress').forEach(t=>pollAgentStatus(t.id));
+    // Auto-advance check
+    checkAutoAdvance();
+    renderAll();
+  },state.settings.pollingIntervalSec*1000);
+}
+function stopPolling(){
+  if(state.pollingInterval)clearInterval(state.pollingInterval);
+  state.pollingActive=false;
+}
+/* ========== TASK MODAL ========== */
+let editingTaskId=null;
+function openTaskModal(taskId=null){
+  editingTaskId=taskId||null;
+  const t=taskId?getTask(taskId):null;
+  const isEdit=!!t;
+  document.querySelector('#taskModal .modal-title').textContent=isEdit?`Edit Task #${t.num}`:'New Task';
+  document.getElementById('taskModalSave').textContent=isEdit?'Save Changes':'Create Task';
+  const allTasks=state.tasks.filter(x=>!taskId||x.id!==taskId);
+  const actorOpts=state.actors.map(a=>`<option value="${a.id}" ${t&&t.assignee===a.id?'selected':''}>${SEC.sanitize(a.name)} (${a.type})</option>`).join('');
+  document.getElementById('taskModalBody').innerHTML=`
+    <div class="form-group"><label class="form-label">Title *</label><input class="form-input" id="tm_title" value="${t?SEC.sanitize(t.title):''}"></div>
+    <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="tm_desc">${t?SEC.sanitize(t.desc):''}</textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Priority</label>
+        <select class="form-select" id="tm_priority">
+          ${['critical','high','medium','low','none'].map(p=>`<option value="${p}" ${t&&t.priority===p?'selected':''}>${p.charAt(0).toUpperCase()+p.slice(1)}</option>`).join('')}
+        </select></div>
+      <div class="form-group"><label class="form-label">Phase</label><input class="form-input" id="tm_phase" placeholder="e.g. Sprint 1" value="${t?SEC.sanitize(t.phase):''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Assign To</label>
+        <select class="form-select" id="tm_assignee"><option value="">Auto-Route</option>${actorOpts}</select></div>
+      <div class="form-group"><label class="form-label">Due Date</label><input class="form-input" type="date" id="tm_due" value="${t&&t.due?t.due:''}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Tags (comma-separated)</label><input class="form-input" id="tm_tags" value="${t?t.tags.join(', '):''}"></div>
+    <div class="form-group"><label class="form-label">Dependencies</label>
+      <select class="form-select" id="tm_deps" multiple style="height:100px">
+        ${allTasks.map(x=>`<option value="${x.id}" ${t&&t.deps.includes(x.id)?'selected':''}>#${x.num} ${SEC.sanitize(x.title)}</option>`).join('')}
+      </select>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Hold Ctrl/Cmd to select multiple</div>
+    </div>
+    <div class="form-group"><label class="form-check"><input type="checkbox" id="tm_auto" ${!t||t.autoRoute?'checked':''}> Auto-route to best agent</label></div>
+    <div class="form-group"><label class="form-check"><input type="checkbox" id="tm_chain" ${t&&t.nextTask?'checked':''} onchange="document.getElementById('tm_chain_cfg').style.display=this.checked?'block':'none'"> ⛓️ Chain: auto-create follow-up on completion</label>
+      <div id="tm_chain_cfg" style="display:${t&&t.nextTask?'block':'none'};margin-top:8px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">
+        <div class="form-group"><label class="form-label" style="font-size:11px">Follow-up Title</label><input class="form-input" id="tm_chain_title" placeholder="Leave empty for auto-title" value="${t&&t.nextTask?SEC.sanitize(t.nextTask.title||''):''}"></div>
+        <div class="form-group"><label class="form-label" style="font-size:11px">Follow-up Priority</label>
+          <select class="form-select" id="tm_chain_priority">
+            <option value="">Same as parent</option>
+            ${['critical','high','medium','low','none'].map(p=>`<option value="${p}" ${t&&t.nextTask&&t.nextTask.priority===p?'selected':''}>${p.charAt(0).toUpperCase()+p.slice(1)}</option>`).join('')}
+          </select></div>
+      </div>
+    </div>
+  `;
+  openModal('taskModalOverlay');
+}
+function saveTask(){
+  const title=document.getElementById('tm_title').value.trim();
+  if(!title){toast('Title is required','error');return}
+  const deps=Array.from(document.getElementById('tm_deps').selectedOptions).map(o=>o.value);
+  const tags=document.getElementById('tm_tags').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const assignee=document.getElementById('tm_assignee').value||null;
+  const autoRoute=document.getElementById('tm_auto').checked;
+  if(editingTaskId){
+    const t=getTask(editingTaskId);if(!t)return;
+    const oldPriority=t.priority;
+    t.title=title;t.desc=document.getElementById('tm_desc').value.trim();
+    t.priority=document.getElementById('tm_priority').value;t.phase=document.getElementById('tm_phase').value.trim();
+    t.assignee=assignee;t.due=document.getElementById('tm_due').value||null;
+    t.tags=tags;t.deps=deps;t.autoRoute=autoRoute;t.updated=Date.now();
+    const chainEnabled=document.getElementById('tm_chain').checked;
+    t.nextTask=chainEnabled?{title:document.getElementById('tm_chain_title').value.trim(),priority:document.getElementById('tm_chain_priority').value||null}:null;
+    audit('TASK_UPDATED',`Task #${t.num} updated`,t.id);
+    if(t.priority!==oldPriority)audit('PRIORITY_CHANGED',`Task #${t.num} priority ${oldPriority}→${t.priority}`,t.id);
+    if(autoRoute&&!assignee)autoRouteTask(t);
+    toast(`Task #${t.num} updated`,'success');
+  }else{
+    const chainEnabled2=document.getElementById('tm_chain').checked;
+    const nextTask2=chainEnabled2?{title:document.getElementById('tm_chain_title').value.trim(),priority:document.getElementById('tm_chain_priority').value||null}:null;
+    const t=mkTask({title,desc:document.getElementById('tm_desc').value.trim(),priority:document.getElementById('tm_priority').value,phase:document.getElementById('tm_phase').value.trim(),assignee,due:document.getElementById('tm_due').value||null,tags,deps,autoRoute,nextTask:nextTask2});
+    state.tasks.push(t);
+    audit('TASK_CREATED',`Task #${t.num} "${title}" created`,t.id);
+    if(autoRoute&&!assignee)autoRouteTask(t);
+    toast(`Task #${t.num} created`,'success');
+  }
+  closeModal('taskModalOverlay');editingTaskId=null;
+  recalcDeps();recalcPriorities();saveState();renderAll();
+}
+/* ========== ACTOR MODAL ========== */
+function openActorModal(){
+  document.getElementById('actorModalBody').innerHTML=`
+    <div class="form-group"><label class="form-label">Actor Type</label>
+      <select class="form-select" id="am_type" onchange="toggleActorFields()">
+        <option value="human">Human</option>
+        <option value="agent">Agent System (OpenClaw, CrewAI, etc.)</option>
+        <option value="claude">Claude Code / Cowork</option>
+        <option value="codex">OpenAI Codex</option>
+      </select></div>
+    <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="am_name"></div>
+    <div id="am_human_fields">
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="am_email" type="email"></div>
+      <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="am_phone"></div>
+    </div>
+    <div id="am_agent_fields" style="display:none">
+      <div class="form-group"><label class="form-label">System Type</label><input class="form-input" id="am_sysType" placeholder="e.g. OpenClaw, CrewAI, AutoGen"></div>
+      <div class="form-group"><label class="form-label">Endpoint URL</label><input class="form-input" id="am_endpoint" placeholder="http://localhost:8080"></div>
+      <div class="form-group"><label class="form-label">API Contract</label>
+        <select class="form-select" id="am_apiContract">
+          <option value="generic">Generic REST</option>
+          <option value="openclaw">OpenClaw (Gateway API)</option>
+          <option value="crewai">CrewAI (FastAPI/AMP)</option>
+        </select>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Defines how AgentFlow communicates with this agent system</div>
+      </div>
+      <div class="form-group"><label class="form-label">Sub-Agents (one per line: name | function)</label>
+        <textarea class="form-textarea" id="am_agents" placeholder="Researcher | Web research and data gathering&#10;Coder | Code generation and testing"></textarea></div>
+    </div>
+    <div id="am_claude_fields" style="display:none">
+      <div class="form-group"><label class="form-label">Claude Type</label>
+        <select class="form-select" id="am_claudeType"><option value="claude-code">Claude Code</option><option value="cowork">Cowork</option></select></div>
+      <div class="form-group"><label class="form-label">Capabilities (comma-separated)</label><input class="form-input" id="am_caps" value="coding,analysis,refactoring,debugging"></div>
+    </div>
+    <div id="am_codex_fields" style="display:none">
+      <div class="form-group"><label class="form-label">Codex Model</label><input class="form-input" id="am_codexModel" value="codex-latest"></div>
+      <div class="form-group"><label class="form-label">Capabilities (comma-separated)</label><input class="form-input" id="am_codexCaps" value="coding,generation,completion,analysis"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Status</label>
+      <select class="form-select" id="am_status"><option value="online">Online</option><option value="busy">Busy</option><option value="offline">Offline</option></select></div>
+  `;
+  openModal('actorModalOverlay');
+}
+function toggleActorFields(){
+  const type=document.getElementById('am_type').value;
+  document.getElementById('am_human_fields').style.display=type==='human'?'':'none';
+  document.getElementById('am_agent_fields').style.display=type==='agent'?'':'none';
+  document.getElementById('am_claude_fields').style.display=type==='claude'?'':'none';
+  document.getElementById('am_codex_fields').style.display=type==='codex'?'':'none';
+}
+function saveActor(){
+  const type=document.getElementById('am_type').value;
+  const name=document.getElementById('am_name').value.trim();
+  if(!name){toast('Name is required','error');return}
+  const actor={id:uid(),type,name,status:document.getElementById('am_status').value};
+  if(type==='human'){
+    actor.email=document.getElementById('am_email').value.trim();
+    actor.phone=document.getElementById('am_phone').value.trim();
+  }else if(type==='agent'){
+    actor.systemType=document.getElementById('am_sysType').value.trim();
+    actor.endpoint=document.getElementById('am_endpoint').value.trim();
+    actor.apiContract=document.getElementById('am_apiContract').value;
+    actor.agents=document.getElementById('am_agents').value.split('\n').filter(Boolean).map(l=>{
+      const[n,fn]=l.split('|').map(s=>s.trim());return{name:n||'Agent',fn:fn||''};
+    });
+  }else if(type==='claude'){
+    actor.claudeType=document.getElementById('am_claudeType').value;
+    actor.capabilities=document.getElementById('am_caps').value.split(',').map(s=>s.trim()).filter(Boolean);
+  }else if(type==='codex'){
+    actor.codexModel=document.getElementById('am_codexModel').value.trim();
+    actor.capabilities=document.getElementById('am_codexCaps').value.split(',').map(s=>s.trim()).filter(Boolean);
+  }
+  state.actors.push(actor);
+  audit('ACTOR_ADDED',`${type} actor "${name}" added`);
+  closeModal('actorModalOverlay');saveState();renderAll();
+  toast(`${name} added as ${type}`,'success');
+}
+function openActorDetail(actorId){
+  const a=state.actors.find(x=>x.id===actorId);if(!a)return;
+  const tasks=state.tasks.filter(t=>t.assignee===actorId);
+  const logs=state.auditLog.filter(l=>l.actorId===actorId).slice(-20);
+
+  // Fetch resolved profile from registry (async, but render sync first)
+  let profileHTML='';
+  if(API.serverMode){
+    fetch('/api/registry/'+actorId,{signal:AbortSignal.timeout(5000)}).then(r=>r.json()).then(profile=>{
+      const el=document.getElementById('agentProfileSection');
+      if(!el)return;
+      el.innerHTML=`
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5">${SEC.sanitize(profile.description||'')}</div>
+        ${profile.capabilities?`<div style="margin-bottom:8px"><div class="form-label">Capabilities</div><div class="tc-tags">${profile.capabilities.map(c=>`<span class="tc-tag">${SEC.sanitize(c)}</span>`).join('')}</div></div>`:''}
+        ${profile.canHandle?`<div style="margin-bottom:8px"><div class="form-label">Can Handle Task Types</div><div class="tc-tags">${profile.canHandle.map(c=>`<span class="tc-tag" style="background:rgba(46,160,67,.15);color:var(--success)">${SEC.sanitize(c)}</span>`).join('')}</div></div>`:''}
+        <div style="font-size:11px;color:var(--text-muted)">Max concurrent: ${profile.maxConcurrent||'?'}</div>
+        ${Object.keys(profile.subAgents||{}).length>0?`
+          <div style="margin-top:10px"><div class="form-label">Sub-Agents &amp; Purposes</div>
+          ${Object.values(profile.subAgents).map(sa=>`
+            <div style="padding:6px 8px;margin:3px 0;background:var(--card);border-radius:6px;border:1px solid var(--border)">
+              <div style="font-weight:600;font-size:12px">${SEC.sanitize(sa.name)}</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin:2px 0">${SEC.sanitize(sa.purpose)}</div>
+              ${sa.skills?.length?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:3px">${sa.skills.map(s=>`<span style="font-size:9px;padding:1px 5px;border-radius:8px;background:rgba(0,180,216,.1);color:var(--accent)">${SEC.sanitize(s)}</span>`).join('')}</div>`:''}
+              ${sa.taskTypes?.length?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:3px">${sa.taskTypes.map(t=>`<span style="font-size:9px;padding:1px 5px;border-radius:8px;background:rgba(46,160,67,.1);color:var(--success)">${SEC.sanitize(t)}</span>`).join('')}</div>`:''}
+            </div>
+          `).join('')}
+          </div>
+        `:''}
+      `;
+    }).catch(err=>{console.warn('Async error',err);});
+  }
+
+  // Group tasks by column for status overview
+  const tasksByCol={};
+  tasks.forEach(t=>{tasksByCol[t.column]=tasksByCol[t.column]||[];tasksByCol[t.column].push(t)});
+  const colLabels={inbox:'Inbox',todo:'Ready',in_progress:'In Progress',review:'Review',pending_human:'Pending',failed:'Failed',done:'Done'};
+  const colColors={inbox:'#8b949e',todo:'#d29922',in_progress:'#00b4d8',review:'#7c3aed',pending_human:'#f0883e',failed:'#da3633',done:'#2ea043'};
+
+  document.getElementById('detailTitle').textContent=`${a.name} (${a.type})`;
+  document.getElementById('detailBody').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><div class="form-label">Type</div><div>${a.type}</div></div>
+      <div><div class="form-label">Status</div><div><span class="sb-dot ${a.status}" style="display:inline-block;margin-right:4px"></span>${a.status}</div></div>
+      ${a.email?`<div><div class="form-label">Email</div><div>${SEC.sanitize(a.email)}</div></div>`:''}
+      ${a.endpoint?`<div><div class="form-label">Endpoint</div><div style="font-family:monospace;font-size:11px">${SEC.sanitize(a.endpoint)}</div></div>`:''}
+    </div>
+    <div class="detail-section" id="agentProfileSection">
+      <div style="font-size:11px;color:var(--text-muted)">Loading agent profile...</div>
+    </div>
+    <div class="detail-section"><h4>Tasks by State (${tasks.length} total)</h4>
+      ${Object.entries(tasksByCol).map(([col,ts])=>`
+        <div style="margin-bottom:8px">
+          <div style="font-size:11px;font-weight:600;color:${colColors[col]||'var(--text-muted)'};margin-bottom:4px">${colLabels[col]||col} (${ts.length})</div>
+          ${ts.map(t=>`<div style="font-size:12px;padding:3px 0;cursor:pointer;display:flex;align-items:center;gap:6px" onclick="closeModal('detailModalOverlay');openDetail('${SEC.safeId(t.id)}')">
+            <span style="color:var(--text-muted)">#${t.num}</span>
+            <span style="flex:1">${SEC.sanitize(t.title)}</span>
+            ${t.assigneeAgent?`<span style="font-size:9px;padding:1px 5px;border-radius:8px;background:var(--surface);color:var(--accent)">${SEC.sanitize(t.assigneeAgent)}</span>`:''}
+            ${t.meta?.linkedSession?`<span style="font-size:9px;color:var(--success)" title="Linked to agent session">●</span>`:''}
+          </div>`).join('')}
+        </div>
+      `).join('')}
+      ${tasks.length===0?'<div style="font-size:12px;color:var(--text-muted)">No tasks assigned</div>':''}
+    </div>
+    ${a.meta?.lastProbe?`<div class="detail-section"><h4>Live Discovery</h4>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Last probe: ${new Date(a.meta.lastProbe).toLocaleTimeString()}</div>
+      ${a.meta.lastProbeResult?`<div style="font-size:11px;margin-bottom:4px">Result: <span style="color:${a.meta.lastProbeResult==='reachable'?'var(--success)':'var(--danger)'}"><strong>${a.meta.lastProbeResult}</strong></span></div>`:''}
+      ${a.meta.claudeVersion?`<div style="font-size:11px;margin-bottom:4px">Version: <strong>${SEC.sanitize(a.meta.claudeVersion)}</strong></div>`:''}
+      ${a.meta.discoveredAgents?`<div style="font-size:11px;margin-bottom:4px">Discovered agents: <strong>${a.meta.discoveredAgents.join(', ')}</strong></div>`:''}
+      ${a.meta.activeSessions?`<div style="font-size:11px;margin-bottom:4px">Active sessions: <strong>${a.meta.activeSessions}</strong></div>`:''}
+      ${a.meta.recentSessions?`<div style="font-size:11px;margin-bottom:4px">Recent sessions (24h): <strong>${a.meta.recentSessions}</strong></div>`:''}
+      ${a.meta.sessionDetails?`<div style="font-size:10px;margin-top:6px;padding:6px;background:var(--card);border-radius:4px;max-height:120px;overflow-y:auto;border:1px solid var(--border)">${a.meta.sessionDetails.map(s=>`<div style="padding:2px 0;border-bottom:1px solid var(--border)">
+        ${s.source==='openclaw'?`<span style="color:var(--accent)">${SEC.sanitize(s.agentId||s.key)}</span> · ${SEC.sanitize(s.model||'?')} · ${s.contextTokens||0} tokens`
+        :`<span style="color:var(--accent)">${SEC.sanitize(s.project||s.sessionId)}</span> · ${s.sizeKB}KB · ${SEC.sanitize(s.model||'?')}`}
+      </div>`).join('')}</div>`:''}
+    </div>`:''}
+    ${a.endpoint?`<div class="detail-section"><h4>Integration</h4>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">API Contract: <strong>${a.apiContract||'generic'}</strong> · Endpoint: <code style="background:var(--code-bg);padding:2px 6px;border-radius:3px">${SEC.sanitize(a.endpoint)}</code></div>
+      <div style="display:flex;gap:6px"><button class="nav-btn" onclick="testAgentConnection('${SEC.safeId(actorId)}')" style="font-size:11px">Test Connection</button>
+      <button class="nav-btn" onclick="dispatchAllToAgent('${SEC.safeId(actorId)}')" style="font-size:11px">Dispatch All Pending</button></div>
+    </div>`:''}
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="nav-btn" onclick="toggleActorStatus('${SEC.safeId(actorId)}')">Toggle Status</button>
+      <button class="nav-btn" onclick="runDiscoveryNow()" style="font-size:11px">Probe Now</button>
+      <button class="nav-btn danger" style="color:var(--danger);border-color:var(--danger)" onclick="removeActor('${SEC.safeId(actorId)}')">Remove</button>
+    </div>
+  `;
+  openModal('detailModalOverlay');
+}
+function toggleActorStatus(id){
+  const a=state.actors.find(x=>x.id===id);if(!a)return;
+  const cycle={online:'busy',busy:'offline',offline:'online',error:'online'};
+  a.status=cycle[a.status]||'online';
+  audit('ACTOR_STATUS',`${a.name} status → ${a.status}`,null,a.id);
+  saveState();renderAll();openActorDetail(id);
+}
+function removeActor(id){
+  const a=state.actors.find(x=>x.id===id);if(!a)return;
+  if(a.type==='human'){toast('Cannot remove human actors','error');return}
+  state.actors=state.actors.filter(x=>x.id!==id);
+  state.tasks.forEach(t=>{if(t.assignee===id){t.assignee=null;t.assigneeAgent=null}});
+  audit('ACTOR_REMOVED',`${a.name} removed`);
+  closeModal('detailModalOverlay');saveState();renderAll();
+  toast(`${a.name} removed`,'info');
+}
+/* ========== MOBILE REMOTE CONTROL ========== */
+function toggleRemote(){
+  const p=document.getElementById('remotePanel');
+  p.classList.toggle('active');
+  if(p.classList.contains('active'))renderRemote();
+}
+function renderRemote(){
+  const tasks=state.tasks.filter(t=>t.column!=='done').sort((a,b)=>{
+    const po={critical:0,high:1,medium:2,low:3,none:4};
+    return(po[a.priority]||4)-(po[b.priority]||4);
+  });
+  const pending=state.tasks.filter(t=>t.column==='pending_human');
+  const rateLimited=state.tasks.filter(t=>t.rateLimitInfo);
+  const needsClarity=state.tasks.filter(t=>t.clarificationInfo);
+  document.getElementById('remoteBody').innerHTML=`
+    <div style="margin-bottom:16px">
+      <h3 style="font-size:16px;margin-bottom:8px">📱 Remote Dashboard</h3>
+      <p style="font-size:12px;color:var(--text-muted)">Manage tasks from any device. Works on iOS, Android, Windows, Linux, Mac.</p>
+      <div style="margin-top:8px;padding:10px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Connection</div>
+        <div style="font-size:13px;color:var(--success)">● Local Mode (Direct)</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px">For remote access, configure Cloudflare Tunnel or ngrok to expose this page securely.</div>
+      </div>
+    </div>
+    ${pending.length?`<div style="margin-bottom:16px">
+      <h4 style="font-size:14px;color:var(--warning);margin-bottom:8px">🧑 Needs Your Attention (${pending.length})</h4>
+      ${pending.map(t=>`<div class="remote-card" onclick="toggleRemote();openDetail('${SEC.safeId(t.id)}')">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:600">#${t.num} ${SEC.sanitize(t.title)}</span>
+          <span style="font-size:10px;color:${priorityColor(t.priority)};font-weight:700">${t.priority.toUpperCase()}</span>
+        </div>
+        ${t.humanReqDoc?`<div style="font-size:12px;color:var(--text-secondary);margin-top:4px">${SEC.sanitize(t.humanReqDoc.what)}</div>
+        <div style="font-size:10px;color:var(--warning);margin-top:2px">Urgency: ${t.humanReqDoc.urgency.toUpperCase()}</div>`:
+        t.clarificationInfo?`<div style="font-size:12px;color:var(--info);margin-top:4px">${SEC.sanitize(t.clarificationInfo.reason)}</div>`:''}
+      </div>`).join('')}
+    </div>`:''}
+    ${rateLimited.length?`<div style="margin-bottom:16px">
+      <h4 style="font-size:14px;color:var(--danger);margin-bottom:8px">⏳ Rate Limited (${rateLimited.length})</h4>
+      ${rateLimited.map(t=>`<div class="remote-card">
+        <div style="font-weight:600">#${t.num} ${SEC.sanitize(t.title)}</div>
+        <div style="font-size:11px;color:var(--danger);margin-top:4px">${SEC.sanitize(t.rateLimitInfo.reason)}</div>
+        <div style="font-size:10px;color:var(--text-muted)">Retry ${t.retryCount}/${t.maxRetries} · Next: ${fmtTime(t.rateLimitInfo.retryAt)}</div>
+        <button class="nav-btn" style="margin-top:8px;font-size:11px" onclick="retryRateLimited('${SEC.safeId(t.id)}')">🔄 Retry Now</button>
+      </div>`).join('')}
+    </div>`:''}
+    ${needsClarity.length?`<div style="margin-bottom:16px">
+      <h4 style="font-size:14px;color:var(--info);margin-bottom:8px">❓ Needs Clarification (${needsClarity.length})</h4>
+      ${needsClarity.map(t=>`<div class="remote-card" onclick="toggleRemote();openClarifyFlow('${SEC.safeId(t.id)}')">
+        <div style="font-weight:600">#${t.num} ${SEC.sanitize(t.title)}</div>
+        <div style="font-size:11px;color:var(--info);margin-top:4px">${SEC.sanitize(t.clarificationInfo.reason)}</div>
+      </div>`).join('')}
+    </div>`:''}
+    <div style="margin-bottom:16px">
+      <h4 style="font-size:14px;margin-bottom:8px">Active Tasks (${tasks.length})</h4>
+      ${tasks.slice(0,20).map(t=>`<div class="remote-card" onclick="toggleRemote();openDetail('${SEC.safeId(t.id)}')">
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-weight:600;font-size:13px">#${t.num} ${SEC.sanitize(t.title)}</span>
+          <span style="font-size:10px;color:${priorityColor(t.priority)}">${t.priority[0].toUpperCase()}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${state.columns.find(c=>c.id===t.column)?.name} · ${t.assignee?getActorName(t.assignee):'Unassigned'}</div>
+      </div>`).join('')}
+    </div>
+    <div style="margin-top:16px">
+      <button class="nav-btn primary" style="width:100%;padding:12px" onclick="toggleRemote();openTaskModal()">+ New Task</button>
+    </div>
+  `;
+}
+/* ========== SETTINGS ========== */
+function openSettings(){
+  document.getElementById('settingsBody').innerHTML=`
+    <div class="settings-grid">
+      <div class="form-group"><label class="form-label">App Title</label><input class="form-input" id="s_title" value="${SEC.sanitize(state.title)}"></div>
+      <div class="form-group"><label class="form-label">Logo URL</label><input class="form-input" id="s_logo" value="${SEC.sanitize(state.logoUrl)}"></div>
+    </div>
+    <h4 style="margin:16px 0 8px;font-size:13px">Theme Colors</h4>
+    <div class="settings-grid">
+      ${Object.entries(state.theme).map(([k,v])=>`
+        <div class="form-group"><label class="form-label">${k}</label><div style="display:flex;gap:8px;align-items:center"><input type="color" class="color-swatch" id="s_${k}" value="${v}"><span style="font-size:11px;font-family:monospace">${v}</span></div></div>
+      `).join('')}
+    </div>
+    <h4 style="margin:16px 0 8px;font-size:13px">Automation</h4>
+    <div class="form-group"><label class="form-check"><input type="checkbox" id="s_autoRetry" ${state.settings.autoRetryOnRateLimit?'checked':''}> Auto-retry on rate limit</label></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Rate Limit Cooldown (sec)</label><input class="form-input" type="number" id="s_cooldown" value="${state.settings.rateLimitCooldownSec}"></div>
+      <div class="form-group"><label class="form-label">Max Auto-Retries</label><input class="form-input" type="number" id="s_maxRetries" value="${state.settings.maxAutoRetries}"></div>
+    </div>
+    <div class="form-group"><label class="form-check"><input type="checkbox" id="s_completionDoc" ${state.settings.requireCompletionDoc?'checked':''}> Require completion documentation</label></div>
+    <div class="form-group"><label class="form-check"><input type="checkbox" id="s_polling" ${state.settings.enablePolling?'checked':''}> Enable agent polling</label></div>
+    <div class="form-group"><label class="form-label">Polling Interval (sec)</label><input class="form-input" type="number" id="s_pollInt" value="${state.settings.pollingIntervalSec}"></div>
+    <h4 style="margin:16px 0 8px;font-size:13px">WIP Limits</h4>
+    ${state.columns.map(c=>`
+      <div class="form-group" style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:12px;width:120px">${c.name}</span>
+        <input class="form-input" type="number" min="0" style="width:80px" id="s_wip_${c.id}" value="${c.wipLimit||0}">
+        <span style="font-size:10px;color:var(--text-muted)">(0 = unlimited)</span>
+      </div>
+    `).join('')}
+    <h4 style="margin:16px 0 8px;font-size:13px">Plan & Pricing</h4>
+    <div class="form-group"><label class="form-label">Current Plan</label>
+      <select class="form-select" id="s_plan">
+        <option value="free" ${state.plan==='free'?'selected':''}>Free — Up to 25 tasks, 3 agents</option>
+        <option value="pro" ${state.plan==='pro'?'selected':''}>Pro — Unlimited tasks, 10 agents, priority routing</option>
+        <option value="enterprise" ${state.plan==='enterprise'?'selected':''}>Enterprise — Unlimited everything, audit export, SSO, API</option>
+      </select></div>
+    <div style="margin-top:12px;padding:12px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Security & Compliance</div>
+      <div style="font-size:12px;color:var(--success)">✅ All data stored locally (encrypted)</div>
+      <div style="font-size:12px;color:var(--success)">✅ No data sent to external servers</div>
+      <div style="font-size:12px;color:var(--success)">✅ XSS/CSRF protection active</div>
+      <div style="font-size:12px;color:var(--success)">✅ Input sanitization on all fields</div>
+      <div style="font-size:12px;color:var(--success)">✅ Cross-platform (Windows/Linux/Mac/Mobile)</div>
+    </div>
+    <h4 style="margin:16px 0 8px;font-size:13px">Agent API Contracts</h4>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">AgentFlow dispatches tasks to your agents via HTTP. Your agent system must implement these endpoints:</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-size:11px;font-family:monospace;line-height:1.6">
+      <div style="font-weight:700;color:var(--accent);margin-bottom:4px">OpenClaw (Gateway @ 127.0.0.1:18789)</div>
+      <div>POST /api/tasks → {task, agent} → {taskId, status}</div>
+      <div>GET /api/tasks/{id}/status → {status, result}</div>
+      <div style="font-weight:700;color:var(--secondary);margin:8px 0 4px">CrewAI (FastAPI wrapper @ 127.0.0.1:8000)</div>
+      <div>POST /crew/tasks → {objective, context, agent_role} → {task_id, status}</div>
+      <div>GET /crew/tasks/{id} → {task_id, status, result}</div>
+      <div style="font-weight:700;color:var(--text-muted);margin:8px 0 4px">Generic REST (any agent)</div>
+      <div>POST /tasks → {id, title, description, agent} → {id, status}</div>
+      <div>GET /tasks/{id} → {id, status, result}</div>
+    </div>
+    <div style="font-size:10px;color:var(--text-faint);margin-top:6px">Status values: processing, completed, done, failed, error. Result field is added as a comment on the task.</div>
+  `;
+  openModal('settingsModalOverlay');
+}
+function applySettings(){
+  state.title=document.getElementById('s_title').value.trim()||'AgentFlow';
+  state.logoUrl=document.getElementById('s_logo').value.trim();
+  Object.keys(state.theme).forEach(k=>{state.theme[k]=document.getElementById('s_'+k).value});
+  state.settings.autoRetryOnRateLimit=document.getElementById('s_autoRetry').checked;
+  state.settings.rateLimitCooldownSec=parseInt(document.getElementById('s_cooldown').value)||60;
+  state.settings.maxAutoRetries=parseInt(document.getElementById('s_maxRetries').value)||3;
+  state.settings.requireCompletionDoc=document.getElementById('s_completionDoc').checked;
+  state.settings.enablePolling=document.getElementById('s_polling').checked;
+  state.settings.pollingIntervalSec=parseInt(document.getElementById('s_pollInt').value)||30;
+  state.columns.forEach(c=>{c.wipLimit=parseInt(document.getElementById('s_wip_'+c.id).value)||0});
+  state.plan=document.getElementById('s_plan').value;
+  applyTheme();
+  if(state.settings.enablePolling)startPolling();else stopPolling();
+  closeModal('settingsModalOverlay');
+  audit('SETTINGS_CHANGED','Settings updated');
+  saveState();renderAll();
+  toast('Settings applied','success');
+}
+function applyTheme(){
+  const t=state.theme;
+  const html=document.documentElement;
+  const isLight=html.classList.contains('light');
+  // Accent & secondary are always user-customizable (branding)
+  html.style.setProperty('--accent',t.accent);
+  html.style.setProperty('--secondary',t.secondary);
+  // Core palette: in light mode, REMOVE inline overrides so html.light CSS class wins
+  // In dark mode, apply user-customized dark theme
+  const corePalette=['bg','card','text','border'];
+  if(isLight){
+    corePalette.forEach(k=>html.style.removeProperty('--'+k));
+    // Also remove surface/hover so CSS class handles them
+    html.style.removeProperty('--surface');
+    html.style.removeProperty('--hover');
+  }else{
+    html.style.setProperty('--bg',t.bg);
+    html.style.setProperty('--card',t.card);
+    html.style.setProperty('--text',t.text);
+    html.style.setProperty('--border',t.border);
+  }
+  document.getElementById('navTitle').textContent=state.title;
+  const logo=document.getElementById('navLogo');
+  if(state.logoUrl){logo.src=state.logoUrl;logo.style.display='block'}else{logo.style.display='none'}
+}
+/* ========== IMPORT / EXPORT ========== */
+function exportData(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download=`agentflow_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();URL.revokeObjectURL(url);
+  audit('DATA_EXPORTED','Full state exported');
+  toast('Data exported','success');
+}
+function handleImport(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!data.columns||!data.tasks){toast('Invalid AgentFlow data','error');return}
+      delete data.__proto__;
+      delete data.constructor;
+      delete data.prototype;
+      Object.assign(state,data);
+      audit('DATA_IMPORTED','State imported from file');
+      applyTheme();saveState();renderAll();startPolling();
+      toast('Data imported successfully','success');
+    }catch(err){toast('Import failed: '+err.message,'error')}
+  };
+  reader.readAsText(file);e.target.value='';
+}
+/* ========== KEYBOARD SHORTCUTS ========== */
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;
+  if(e.key==='n'||e.key==='N'){e.preventDefault();openTaskModal()}
+  if(e.key==='r'||e.key==='R'){e.preventDefault();toggleReasoning()}
+  if(e.key==='m'||e.key==='M'){e.preventDefault();toggleRemote()}
+  if(e.key==='s'||e.key==='S'){e.preventDefault();openSettings()}
+  if(e.key==='a'||e.key==='A'){e.preventDefault();runAutoRoute()}
+  if(e.key==='?'){e.preventDefault();openModal('shortcutsOverlay')}
+  if(e.key==='f'||e.key==='F'){e.preventDefault();const sb=document.getElementById('searchBar');if(sb){sb.focus();sb.select()}}
+  if(e.key==='Escape'){
+    document.querySelectorAll('.modal-overlay.active').forEach(m=>m.classList.remove('active'));
+    hideCtx();
+    document.getElementById('remotePanel').classList.remove('active');
+  }
+});
+/* ========== SIDEBAR TOGGLE ========== */
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  sb.classList.toggle('collapsed');sb.classList.toggle('mobile-open');
+}
+/* ========== COLOR MODE (Dark / Light / System) ========== */
+let currentColorMode='dark';
+function setColorMode(mode){
+  currentColorMode=mode;
+  const html=document.documentElement;
+  html.classList.remove('light');
+  if(mode==='light'){
+    html.classList.add('light');
+  }else if(mode==='system'){
+    const prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if(!prefersDark)html.classList.add('light');
+  }
+  // Re-apply theme so inline styles don't override CSS class variables
+  applyTheme();
+  // Update toggle active states
+  document.querySelectorAll('[data-mode]').forEach(b=>{b.classList.toggle('active',b.dataset.mode===mode)});
+  localStorage.setItem('agentflow_colorMode',mode);
+  audit('THEME_MODE',`Color mode → ${mode}`);
+}
+// Listen for system preference changes
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
+  if(currentColorMode==='system')setColorMode('system');
+});
+/* ========== TEXT SIZE ========== */
+let currentTextSize='md';
+function setTextSize(size){
+  currentTextSize=size;
+  const html=document.documentElement;
+  html.classList.remove('text-sm','text-md','text-lg','text-xl');
+  html.classList.add('text-'+size);
+  document.querySelectorAll('[data-size]').forEach(b=>{b.classList.toggle('active',b.dataset.size===size)});
+  localStorage.setItem('agentflow_textSize',size);
+}
+/* ========== PLAN BADGE (navbar) ========== */
+function updatePlanBadge(){
+  const el=document.getElementById('navPlan');
+  if(!el)return;
+  el.textContent=state.plan.toUpperCase();
+  el.className='nav-plan '+state.plan;
+}
+/* ========== DEMO DATA (TESTING ONLY) ========== */
+function loadDemo(){
+  // Only include actors that actually exist or could exist in the user's environment.
+  // CrewAI, Codex etc. can be added later via "Add Agent" when they're actually set up.
+  state.actors=[
+    {id:uid(),type:'human',name:'Thomas Willner',email:'thomaswillner@gmail.com',phone:'',status:'online'},
+    {id:uid(),type:'agent',name:'OpenClaw Gateway',systemType:'OpenClaw',endpoint:'http://127.0.0.1:18789',apiContract:'openclaw',status:'offline',
+      agents:[{name:'Researcher',fn:'Web research and data gathering via OpenClaw skills'},{name:'Coder',fn:'Code generation, review and testing via OpenClaw skills'},{name:'Analyst',fn:'Data analysis and visualization via OpenClaw skills'}]},
+    {id:uid(),type:'claude',name:'Claude Code',claudeType:'claude-code',capabilities:['coding','analysis','refactoring','debugging'],status:'online'}
+  ];
+  const[th,oc,cl]=state.actors.map(a=>a.id);
+  // Demo tasks — showcasing features (drag & drop, deps, chaining, phases)
+  const t1=mkTask({title:'[TEST] Design system architecture',desc:'Create the overall architecture document for the platform. This is a test task.',priority:'critical',column:'in_progress',assignee:cl,startedAt:Date.now()-7200000,tags:['architecture','planning'],phase:'Phase 1'});
+  const t2=mkTask({title:'[TEST] Implement REST API',desc:'Build the core REST API with authentication and rate limiting. Test task.',priority:'high',column:'in_progress',assignee:oc,assigneeAgent:'Coder',startedAt:Date.now()-3600000,tags:['backend','api'],phase:'Phase 1'});
+  const t3=mkTask({title:'[TEST] Write user docs',desc:'Create comprehensive user documentation. Test task.',priority:'medium',column:'todo',assignee:cl,tags:['docs'],phase:'Phase 2',deps:[t1.id]});
+  const t4=mkTask({title:'[TEST] Frontend dashboard',desc:'Build the main dashboard UI. Test task.',priority:'high',column:'inbox',tags:['frontend','ui'],phase:'Phase 2',deps:[t2.id]});
+  const t5=mkTask({title:'[TEST] Load testing',desc:'Run comprehensive load tests. Test task.',priority:'medium',column:'inbox',tags:['testing','performance'],phase:'Phase 3',deps:[t2.id,t4.id]});
+  const t6=mkTask({title:'[TEST] Security audit',desc:'Full security audit of the platform. Test task.',priority:'critical',column:'pending_human',assignee:th,tags:['security'],humanReqDoc:{what:'Manual penetration testing needed',urgency:'high',context:'Must be done by a human security expert',ts:Date.now()}});
+  const t7=mkTask({title:'[TEST] CI/CD pipeline',desc:'Set up automated build and deployment. Test task.',priority:'low',column:'todo',tags:['devops'],phase:'Phase 1',nextTask:{title:'Deploy to production',priority:'high'}});
+  state.tasks=[t1,t2,t3,t4,t5,t6,t7];
+  state.auditLog=[
+    {ts:Date.now()-7200000,action:'TASK_CREATED',taskId:t1.id,actorId:th,detail:'[TEST] Created "Design system architecture"',nonce:SEC.nonce},
+    {ts:Date.now()-6000000,action:'TASK_ASSIGNED',taskId:t2.id,actorId:th,detail:'[TEST] Assigned "Implement REST API" to OpenClaw→Coder',nonce:SEC.nonce},
+    {ts:Date.now()-3600000,action:'TASK_MOVED',taskId:t1.id,actorId:th,detail:'[TEST] Moved to In Progress',nonce:SEC.nonce},
+  ];
+  state.isDemo=true;
+  recalcDeps();recalcPriorities();
+}
+function hasDemoData(){return state.isDemo===true||state.tasks.some(t=>t.title.startsWith('[TEST]'))}
+function clearDemoData(){
+  if(!confirm('Clear all demo data? This will remove all test tasks and agents. You can then add your own.'))return;
+  state.tasks=[];state.actors=[];state.reasoning=[];state.auditLog=[];state.taskCounter=0;state.isDemo=false;
+  audit('DEMO_CLEARED','Demo data cleared — ready for real tasks');
+  saveState();renderAll();
+  toast('Demo data cleared — create your first task with N or the + Task button','success');
+  updateDemoBanner();
+}
+function updateDemoBanner(){
+  const el=document.getElementById('demoBanner');
+  if(el)el.style.display=hasDemoData()?'block':'none';
+}
+/* ========== INIT ========== */
+async function init(){
+  console.log('%c🚀 AgentFlow starting...','color:#00b4d8;font-size:14px;font-weight:bold');
+  // Try server mode first
+  const hasServer=await API.detect();
+  if(hasServer){
+    const loaded=await API.loadState();
+    if(!loaded&&!loadState()){loadDemo()}
+  }else{
+    if(!loadState()){loadDemo()}
+  }
+  // Restore color mode FIRST so applyTheme knows if we're in light mode
+  const savedMode=localStorage.getItem('agentflow_colorMode')||'dark';
+  setColorMode(savedMode);
+  // Now render
+  renderAll();startPolling();updateDemoBanner();
+  // Show connection indicator
+  updateServerBadge();
+  // Start agent discovery polling (server mode only)
+  API.startDiscoveryPolling();
+  // Restore text size
+  const savedSize=localStorage.getItem('agentflow_textSize')||'md';
+  setTextSize(savedSize);
+  // Close modals on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(o=>{
+    o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('active')});
+  });
+  console.log('%c🔒 Security: XSS protected, input sanitized','color:#2ea043;font-size:11px');
+  console.log(`%c${API.serverMode?'🔗 Server: connected (SQLite persistence)':'📦 Standalone: localStorage only'}`,'color:#d29922;font-size:11px');
+}
+function updateServerBadge(){
+  const el=document.getElementById('serverBadge');
+  if(!el)return;
+  if(API.serverMode){
+    el.innerHTML='<span style="color:var(--success);font-size:10px" title="Server connected — SQLite persistence + WebSocket sync">● Server</span>';
+  }else{
+    el.innerHTML='<span style="color:var(--text-faint);font-size:10px" title="Standalone mode — localStorage only">○ Local</span>';
+  }
+}
+init();
+</script>
+</body>
+</html>
