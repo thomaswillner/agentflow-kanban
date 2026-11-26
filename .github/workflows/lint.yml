@@ -1,0 +1,44 @@
+name: lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pinned linter outside the workspace
+        run: |
+          node --version
+          npm --version
+          mkdir -p "$RUNNER_TEMP/lint-tool"
+          cp ci/lint/package.json ci/lint/package-lock.json "$RUNNER_TEMP/lint-tool/"
+          (cd "$RUNNER_TEMP/lint-tool" && npm ci --ignore-scripts --no-audit --no-fund)
+          echo "$RUNNER_TEMP/lint-tool/node_modules/.bin" >> "$GITHUB_PATH"
+      - name: Lint repository
+        run: oxlint --ignore-pattern lint-canary
+      - name: Prove lint rejects known-bad code
+        run: |
+          ! oxlint lint-canary/bad.js
+      - name: Verify the canary failed on its finding, not on a linter error
+        run: |
+          set +e
+          oxlint -f unix lint-canary/bad.js > "$RUNNER_TEMP/lint-canary.txt"
+          result=$?
+          set -e
+          cat "$RUNNER_TEMP/lint-canary.txt"
+          test "$result" -eq 1
+          grep -Eq '^lint-canary/bad\.js:[0-9]+:[0-9]+: .*\[Error/eslint\(no-debugger\)\]$' "$RUNNER_TEMP/lint-canary.txt"
