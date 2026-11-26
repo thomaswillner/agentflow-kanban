@@ -1,0 +1,35 @@
+{
+  "categories": {
+    "correctness": "off"
+  },
+  "rules": {
+    "no-debugger": "error",
+    "no-dupe-keys": "error",
+    "no-dupe-class-members": "error",
+    "no-dupe-else-if": "error",
+    "no-duplicate-case": "error",
+    "no-func-assign": "error",
+    "no-const-assign": "error",
+    "no-class-assign": "error",
+    "no-import-assign": "error",
+    "no-ex-assign": "error",
+    "no-obj-calls": "error",
+    "no-unsafe-negation": "error",
+    "no-unsafe-finally": "error",
+    "no-self-assign": [
+      "error",
+      {
+        "props": false
+      }
+    ],
+    "no-compare-neg-zero": "error",
+    "use-isnan": "error",
+    "valid-typeof": "error",
+    "for-direction": "error",
+    "no-this-before-super": "error",
+    "no-setter-return": "error",
+    "no-async-promise-executor": "error",
+    "no-unsafe-optional-chaining": "error",
+    "no-loss-of-precision": "error"
+  }
+}
